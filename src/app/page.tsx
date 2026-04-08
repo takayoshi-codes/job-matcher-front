@@ -101,7 +101,7 @@ export default function Home() {
     const form = new FormData();
     form.append("file", file);
     try {
-      const res = await fetch(`${API}/parse-csv`, { method: "POST", body: form });
+      const res = await fetch(`/api/parse-csv`, { method: "POST", body: form });
       if (!res.ok) throw new Error(await res.text());
       const data = await res.json();
       setCareer(data);
@@ -124,7 +124,7 @@ export default function Home() {
     setError("");
     setLoading(true);
     try {
-      const res = await fetch(`${API}/match`, {
+      const res = await fetch(`/api/match`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ job, career }),
