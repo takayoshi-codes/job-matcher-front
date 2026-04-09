@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
 
 const STEPS = [
@@ -114,7 +114,7 @@ export default function CareerBuilderPage() {
     if (targetStep === 0) {
       if (!data.basic.name.trim()) errs.name = "氏名は必須です";
       if (!data.basic.furigana.trim()) errs.furigana = "フリガナは必須です";
-      else if (!/^[ァ-ヶー ]+$/.test(data.basic.furigana.trim())) errs.furigana = "フリガナはカタカナで入力してください";
+      else if (!new RegExp("^[\u30A1-\u30F6\u30FC ]+$").test(data.basic.furigana.trim())) errs.furigana = "フリガナはカタカナで入力してください";
       if (data.basic.age && (isNaN(Number(data.basic.age)) || Number(data.basic.age) < 15)) errs.age = "年齢は15以上の数字で入力してください";
     }
     if (targetStep === 1) {
