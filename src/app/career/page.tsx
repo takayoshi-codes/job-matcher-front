@@ -391,7 +391,24 @@ export default function CareerBuilderPage() {
             <div>
               <label style={s.label}>保有資格・認定</label>
               <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 8 }}>
-                {["基本情報技術者", "応用情報技術者", "ITストラテジスト", "プロジェクトマネージャ", "AWS SAA", "AWS SAP", "G検定", "E資格", "データサイエンティスト検定", "FP2級", "FP1級", "簿記2級", "PMP", "情報セキュリティマネジメント"].map(cert => {
+                {[
+                  // 情報処理技術者
+                  "基本情報技術者", "応用情報技術者", "ITストラテジスト", "システムアーキテクト", "プロジェクトマネージャ", "ネットワークスペシャリスト", "データベーススペシャリスト", "情報セキュリティスペシャリスト", "情報セキュリティマネジメント", "ITサービスマネージャ", "システム監査技術者", "エンベデッドシステムスペシャリスト",
+                  // クラウド・インフラ
+                  "AWS SAA", "AWS SAP", "AWS DVA", "AWS SysOps", "AWS ANS", "AWS DBS", "GCP ACE", "GCP PCA", "GCP PDE", "Azure Administrator", "Azure Solutions Architect", "Oracle Cloud",
+                  // AI・データ
+                  "G検定", "E資格", "データサイエンティスト検定", "統計検定2級", "統計検定準1級", "統計検定1級", "Kaggle Expert", "Kaggle Master",
+                  // セキュリティ
+                  "CISSP", "CISM", "CEH", "CompTIA Security+", "情報セキュリティ管理士",
+                  // PM・マネジメント
+                  "PMP", "PgMP", "PMI-ACP", "PRINCE2", "P2M", "ITILファンデーション", "ITIL v4",
+                  // ベンダー資格
+                  "Oracle認定Javaプログラマ（Gold）", "Oracle Database Administrator", "Cisco CCNA", "Cisco CCNP", "Linux技術者認定（LPIC-1）", "Linux技術者認定（LPIC-2）",
+                  // ビジネス・金融
+                  "FP2級", "FP1級", "CFP", "簿記2級", "簿記1級", "中小企業診断士", "社会保険労務士", "行政書士", "宅建士",
+                  // 語学
+                  "TOEIC 700点以上", "TOEIC 800点以上", "TOEIC 900点以上", "TOEFL iBT 80以上", "英検準1級", "英検1級",
+                ].map(cert => {
                   const on = data.basic.certifications.includes(cert);
                   return (
                     <div key={cert} style={{ ...s.tag, ...(on ? s.tagOn : s.tagOff) }}
@@ -407,7 +424,7 @@ export default function CareerBuilderPage() {
                   );
                 })}
               </div>
-              <textarea style={{ ...s.inp, minHeight: 50 }} placeholder="上記以外の資格を入力（例：TOEIC 750点、PMP、Oracle認定Javaプログラマ）" value={data.basic.certifications} onChange={e => update("basic", "certifications", e.target.value)} />
+              <textarea style={{ ...s.inp, minHeight: 50 }} placeholder="上記以外の資格・認定を入力（例：CompTIA A+、Salesforce認定アドミニストレーター、情報処理安全確保支援士）" value={data.basic.certifications} onChange={e => update("basic", "certifications", e.target.value)} />
             </div>
           </div>
         )}
