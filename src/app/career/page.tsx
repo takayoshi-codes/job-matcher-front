@@ -334,7 +334,7 @@ export default function CareerBuilderPage() {
                   </span>
                 </div>
                 {(data.summary as any)[f] !== "経験なし・該当なし" && (
-                  <textarea style={{ ...s.inp, minHeight: 140 }} placeholder={ph as string} value={(data.summary as any)[f]} onChange={e => update("summary", f, e.target.value)} />
+                  <textarea style={{ ...s.inp, minHeight: 140 }} placeholder={hint as string} value={(data.summary as any)[f]} onChange={e => update("summary", f, e.target.value)} />
                 )}
               </div>
             ))}
@@ -817,5 +817,6 @@ export default function CareerBuilderPage() {
     </div>
   );
 }
+
 
 
