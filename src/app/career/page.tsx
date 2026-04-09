@@ -319,7 +319,7 @@ export default function CareerBuilderPage() {
                       const res = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=" + process.env.NEXT_PUBLIC_GEMINI_API_KEY, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }) });
                       const d = await res.json();
                       const t = d.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
-                      const sp = t.split(/\[短文\]|\[中文\]|\[長文\]/).map((s) => s.trim()).filter(Boolean);
+                      const sp = t.split(/\[短文\]|\[中文\]|\[長文\]/).map((s: string) => s.trim()).filter(Boolean);
                       if (sp[0]) update("pr", "short", sp[0]);
                       if (sp[1]) update("pr", "medium", sp[1]);
                       if (sp[2]) update("pr", "long", sp[2]);
@@ -333,7 +333,7 @@ export default function CareerBuilderPage() {
                       const res = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=" + process.env.NEXT_PUBLIC_GEMINI_API_KEY, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }) });
                       const d = await res.json();
                       const t = d.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
-                      const sp = t.split(/\[短文\]|\[中文\]|\[長文\]/).map((s) => s.trim()).filter(Boolean);
+                      const sp = t.split(/\[短文\]|\[中文\]|\[長文\]/).map((s: string) => s.trim()).filter(Boolean);
                       if (sp[0]) update("pr", "short", sp[0]);
                       if (sp[1]) update("pr", "medium", sp[1]);
                       if (sp[2]) update("pr", "long", sp[2]);
@@ -852,6 +852,7 @@ export default function CareerBuilderPage() {
     </div>
   );
 }
+
 
 
 
