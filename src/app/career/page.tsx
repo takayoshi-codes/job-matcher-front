@@ -305,7 +305,6 @@ export default function CareerBuilderPage() {
                   <option value="答えたくない">答えたくない</option>
                 </select>
               </div>
-              {}
             </div>
             <div style={{ marginBottom: 14 }}>
               <label style={s.label}>最終学歴</label>
