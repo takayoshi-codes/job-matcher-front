@@ -490,15 +490,7 @@ export default function CareerBuilderPage() {
                       Object.values(data.tech).flat().join("、"),
                       data.summary.it, data.summary.consulting, data.summary.management,
                     ].filter(Boolean).join("\n");
-                    const prompt = `以下の職務経歴・スキルを元に、副業・フリーランス向けの自己PRを3種類（短文100字、中文400字、長文800字）生成してください。
-
-${careerSummary}
-
-以下の形式で返してください：\n[短文]\n（100文字程度）
-
-[中文]\n（400文字程度）
-
-[長文]\n（800文字程度）`;
+                    const prompt = "以下の職務経歴・スキルを元に、副業・フリーランス向けの自己PRを3種類（短文100字、中文400字、長文800字）生成してください。\n\n" + careerSummary + "\n\n以下の形式で返してください：\n[短文]\n（100文字程度）\n\n[中文]\n（400文字程度）\n\n[長文]\n（800文字程度）";
                     try {
                       const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${process.env.NEXT_PUBLIC_GEMINI_API_KEY}`;
                       const res = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }) });
@@ -517,13 +509,7 @@ ${careerSummary}
                   style={{ ...s.btn, ...s.btnGhost, fontSize: 13, padding: "10px 20px" }}
                   onClick={async () => {
                     if (!data.pr.short && !data.pr.medium && !data.pr.long) { alert("まず自己PRを入力してください"); return; }
-                    const prompt = `以下の自己PRを副業・フリーランス向けに改善・添削してください。より具体的で魅力的な表現に改善し、同じ形式で返してください。
-
-[短文]\n${data.pr.short}
-
-[中文]\n${data.pr.medium}
-
-[長文]\n${data.pr.long}`;
+                    const prompt = "以下の自己PRを副業・フリーランス向けに改善・添削してください。より具体的で魅力的な表現に改善し、同じ形式で返してください。\n\n[短文]\n" + data.pr.short + "\n\n[中文]\n" + data.pr.medium + "\n\n[長文]\n" + data.pr.long;
                     try {
                       const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${process.env.NEXT_PUBLIC_GEMINI_API_KEY}`;
                       const res = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }) });
@@ -552,11 +538,7 @@ ${careerSummary}
                       ? "例：SIerで10年以上、金融・保険領域のシステム開発に従事。Python・Next.jsを活用したAI系Webアプリ開発が得意。副業では週2〜3日、フルリモートで対応可能です。"
                       : f === "medium"
                       ? "例：SIer勤務10年以上。金融・保険領域を中心に、要件定義から運用保守まで一貫して担当してきました。\nPM・PL経験があり、チームマネジメントも対応可能です。\n近年はPython・Next.js・Gemini APIを活用したAI系Webアプリ開発にも注力しており、業務効率化ツールや診断アプリを複数リリースしています。副業では週2〜3日・フルリモートで参画可能です。"
-                      : "例：SIer勤務10年以上、金融・保険領域のシステム開発を中心にPG・SE・PMとして幅広く経験を積んできました。
-
-【強み】\n・要件定義〜運用保守まで一気通貫でのプロジェクト推進\n・Python / Next.js / Django / FastAPIを活用したフルスタック開発\n・Gemini API / OpenAI APIを活用した生成AIアプリの実装経験\n・FP資格を活かした金融・保険ドメインへの深い理解
-
-【副業について】\n週2〜3日・フルリモートでの参画が可能です。得意領域はAI活用、Webアプリ開発、業務自動化です。"
+                      : "例：SIer勤務10年以上、金融・保険領域のシステム開発を中心にPG・SE・PMとして幅広く経験を積んできました。\n\n【強み】\n・要件定義〜運用保守まで一気通貫でのプロジェクト推進\n・Python / Next.js / Django / FastAPIを活用したフルスタック開発\n・Gemini API / OpenAI APIを活用した生成AIアプリの実装経験\n・FP資格を活かした金融・保険ドメインへの深い理解\n\n【副業について】\n週2〜3日・フルリモートでの参画が可能です。得意領域はAI活用、Webアプリ開発、業務自動化です。"
                   }
                   value={(data.pr as any)[f as string]} />
                 <div style={{ fontSize: 11, textAlign: "right", marginTop: 4, color: (data.pr as any)[f as string].length > Number(target) * 1.2 ? "#e85d26" : "#bbb" }}>
