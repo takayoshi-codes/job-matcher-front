@@ -1,643 +1,370 @@
-﻿"use client";
+"use client";
 
-import { useState, useCallback, useEffect } from "react";
-import { useRouter } from "next/navigation";
-
-const STEPS = [
-  { label: "基本情報", icon: "👤" },
-  { label: "自己PR", icon: "✍️" },
-  { label: "スキルサマリ", icon: "📋" },
-  { label: "技術スタック", icon: "⚙️" },
-  { label: "職務経歴", icon: "💼" },
-  { label: "稼働条件", icon: "📅" },
-  { label: "プレビュー・出力", icon: "📄" },
-];
-
-const TECH_OPTIONS = {
-  language: ["Python", "JavaScript", "TypeScript", "Java", "PHP", "Ruby", "Go", "C#", "VB.NET", "COBOL", "PL/SQL", "Shell", "VBA", "HTML", "CSS"],
-  framework: ["Next.js", "React", "Django", "FastAPI", "Spring", "Laravel", ".NET Framework", "Bootstrap", "Tailwind CSS", "Streamlit"],
-  db: ["PostgreSQL", "MySQL", "Oracle", "SQLite", "SQL Server", "MongoDB", "DynamoDB", "BigQuery"],
-  os: ["Windows", "Linux (Ubuntu)", "Linux (CentOS/RHEL)", "macOS", "Unix (HP-UX)", "MVS (IBM)"],
-  cloud: ["AWS", "Azure", "GCP", "Vercel", "Railway", "Heroku"],
-  ai: ["TensorFlow", "Keras", "scikit-learn", "PyTorch", "BERT", "GPT-2", "Word2Vec", "MeCab", "OpenCV", "Gemini API", "OpenAI API", "Claude API", "HuggingFace"],
-  tools: ["Git", "GitHub", "GitHub Actions", "GitLab", "Docker", "Selenium", "Figma", "Redmine", "Backlog", "Slack API", "Gmail API", "Supabase"],
-};
-
-const TECH_LABELS: Record<string, string> = {
-  language: "言語", framework: "フレームワーク", db: "データベース",
-  os: "OS", cloud: "クラウド", ai: "AI / ML", tools: "ツール",
-};
-
-const PHASES = ["要件定義", "基本設計", "詳細設計", "開発・実装", "単体テスト", "結合テスト", "システムテスト", "リリース・移行", "運用・保守"];
-const JOB_TYPES = ["Webアプリ開発", "AI・機械学習開発", "業務自動化・効率化", "データ分析", "インフラ・クラウド", "PMO・コンサルティング", "フルスタック開発"];
-
-const emptyProject = { from: "", to: "", present: false, title: "", overview: "", position: "", scale: "", phase: [] as string[], work: "", env: "" };
-
-const initialData = {
-  basic: { name: "", furigana: "", age: "", gender: "", station: "", line: "", education: "", certifications: "" },
-  pr: { short: "", medium: "", long: "" },
-  summary: { consulting: "", management: "", it: "" },
-  tech: { language: [] as string[], framework: [] as string[], db: [] as string[], os: [] as string[], cloud: [] as string[], ai: [] as string[], tools: [] as string[], other: "" },
-  projects: [{ ...emptyProject }],
-  working: { rateMin: "", rateMax: "", rateUnit: "月額", daysPerWeek: "", hoursPerDay: "", weekdays: [] as string[], remote: "", location: "", available: "", jobType: [] as string[] },
-};
+import { useState, useRef, useEffect } from "react";
+import type { JobInput, CareerInput, MatchResult } from "@/types";
+import ScoreGauge from "@/components/ScoreGauge";
 
 const STORAGE_KEY = "career_builder_data";
 
+const emptyJob: JobInput = { title: "", required_skills: [], preferred_skills: [], description: "" };
+const emptyCareer: CareerInput = { name: "", skills: "", summary_consulting: "", summary_management: "", summary_it: "", projects: "" };
+
+const JOB_SITES = [
+  {
+    category: "副業・フリーランス向け",
+    color: "#e85d26",
+    sites: [
+      { name: "シューマツワーカー", desc: "週1〜3日の副業特化", url: "https://shuuumatu-worker.jp/", tag: "副業" },
+      { name: "クラウドワークス", desc: "国内最大のクラウドソーシング", url: "https://crowdworks.jp/", tag: "副業" },
+      { name: "ランサーズ", desc: "幅広い職種・スキル案件", url: "https://www.lancers.jp/", tag: "副業" },
+      { name: "Workship", desc: "週1〜副業・フリーランス", url: "https://goworkship.com/", tag: "副業" },
+      { name: "Offers", desc: "エンジニア副業・転職特化", url: "https://offers.jp/", tag: "副業" },
+    ],
+  },
+  {
+    category: "フリーランスエージェント",
+    color: "#7c3aed",
+    sites: [
+      { name: "レバテックフリーランス", desc: "高単価・直請け案件多数", url: "https://freelance.levtech.jp/", tag: "エージェント" },
+      { name: "ギークスジョブ", desc: "リモート案件80%・福利厚生あり", url: "https://geechs-job.com/", tag: "エージェント" },
+      { name: "ITプロパートナーズ", desc: "週2〜3日の案件が豊富", url: "https://itpropartners.com/", tag: "エージェント" },
+      { name: "テックストック", desc: "上流・高単価案件特化", url: "https://tech-stock.com/", tag: "エージェント" },
+      { name: "フリーランススタート", desc: "複数エージェントを一括比較", url: "https://freelance-start.com/", tag: "比較" },
+    ],
+  },
+];
+
 const s: Record<string, React.CSSProperties> = {
-  wrap: { minHeight: "100vh", background: "#f5f5f0", fontFamily: "'Noto Sans JP', sans-serif" },
+  wrap: { minHeight: "100vh", background: "#f5f5f0" },
   header: { background: "#fff", borderBottom: "1px solid #ece9e3", boxShadow: "0 1px 4px rgba(0,0,0,0.05)", position: "sticky", top: 0, zIndex: 100 },
-  headerInner: { maxWidth: 860, margin: "0 auto", padding: "12px 20px", display: "flex", alignItems: "center", justifyContent: "space-between" },
-  logoWrap: { display: "flex", alignItems: "center", gap: 10 },
-  logoIcon: { width: 32, height: 32, background: "#e85d26", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 800, fontSize: 16 },
-  main: { maxWidth: 860, margin: "0 auto", padding: "24px 20px 120px" },
-  card: { background: "#fff", borderRadius: 12, padding: 24, marginBottom: 16, boxShadow: "0 1px 4px rgba(0,0,0,0.06)", border: "1px solid #f0ede8" },
-  sectionTitle: { fontSize: 15, fontWeight: 700, color: "#1a1a1a", marginBottom: 4, display: "flex", alignItems: "center", gap: 8 },
-  bar: { width: 4, height: 18, background: "#e85d26", borderRadius: 2, flexShrink: 0 },
-  desc: { fontSize: 12, color: "#aaa", marginBottom: 20, paddingLeft: 12 },
+  headerInner: { maxWidth: 1200, margin: "0 auto", padding: "14px 20px", display: "flex", alignItems: "center", justifyContent: "space-between" },
+  logo: { display: "flex", alignItems: "center", gap: 10 },
+  logoIcon: { width: 32, height: 32, background: "#e85d26", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 800, fontSize: 16, flexShrink: 0 },
+  main: { maxWidth: 1200, margin: "0 auto", padding: "24px 20px 60px" },
+  card: { background: "#fff", borderRadius: 12, padding: 24, boxShadow: "0 1px 4px rgba(0,0,0,0.06)", border: "1px solid #f0ede8" },
+  cardTitle: { fontSize: 15, fontWeight: 700, color: "#1a1a1a", marginBottom: 4, display: "flex", alignItems: "center", gap: 8 },
+  cardTitleBar: { width: 4, height: 18, background: "#e85d26", borderRadius: 2 },
+  cardDesc: { fontSize: 12, color: "#aaa", marginBottom: 16, paddingLeft: 12 },
   label: { fontSize: 12, fontWeight: 600, color: "#555", marginBottom: 6, display: "block" },
-  hint: { fontSize: 11, color: "#bbb", marginBottom: 6 },
   inp: { width: "100%", border: "1.5px solid #e0ddd8", borderRadius: 8, padding: "10px 14px", fontSize: 14, color: "#1a1a1a", background: "#fff", outline: "none", fontFamily: "inherit", resize: "vertical" as const },
-  grid2: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 },
-  tag: { display: "inline-flex", alignItems: "center", gap: 4, padding: "5px 12px", borderRadius: 20, fontSize: 12, cursor: "pointer", border: "1.5px solid", transition: "all 0.15s", userSelect: "none" as const, fontWeight: 500 },
-  tagOff: { background: "#fff", borderColor: "#e0ddd8", color: "#888" },
-  tagOn: { background: "#fff3ee", borderColor: "#e85d26", color: "#e85d26" },
-  tagsWrap: { display: "flex", flexWrap: "wrap" as const, gap: 6 },
-  btn: { padding: "11px 24px", borderRadius: 8, border: "none", cursor: "pointer", fontSize: 14, fontWeight: 700, fontFamily: "inherit", transition: "all 0.18s" },
+  hint: { fontSize: 11, color: "#bbb", marginBottom: 6 },
+  btn: { padding: "12px 32px", borderRadius: 8, border: "none", cursor: "pointer", fontSize: 14, fontWeight: 700, fontFamily: "inherit", transition: "all 0.18s" },
   btnPrimary: { background: "#e85d26", color: "#fff" },
   btnGhost: { background: "#fff", color: "#555", border: "1.5px solid #e0ddd8" },
-  btnMatch: { background: "#1a1a1a", color: "#fff" },
-  footer: { position: "fixed" as const, bottom: 0, left: 0, right: 0, background: "#fff", borderTop: "1px solid #ece9e3", padding: "14px 24px", display: "flex", justifyContent: "space-between", alignItems: "center", boxShadow: "0 -2px 10px rgba(0,0,0,0.06)" },
-  projectCard: { background: "#fff", border: "1.5px solid #f0ede8", borderRadius: 12, padding: 20, marginBottom: 12 },
-  projectNum: { fontSize: 11, fontWeight: 700, color: "#e85d26", background: "#fff3ee", padding: "3px 10px", borderRadius: 20 },
-  savedBadge: { fontSize: 12, color: "#16a34a", fontWeight: 600, background: "#f0fdf4", padding: "4px 12px", borderRadius: 20, border: "1px solid #bbf7d0" },
+  tag: { display: "inline-flex", alignItems: "center", gap: 4, padding: "3px 10px", borderRadius: 20, fontSize: 12, fontWeight: 500, background: "#fff3ee", color: "#e85d26", border: "1px solid #ffd0c0" },
+  tagMissing: { background: "#fef2f2", color: "#dc2626", border: "1px solid #fecaca" },
+  advice: { background: "#f9f8f6", border: "1px solid #ede9e3", borderRadius: 8, padding: 16, fontSize: 13, lineHeight: 2, whiteSpace: "pre-wrap" as const },
+  uploaderArea: { border: "2px dashed #e0ddd8", borderRadius: 8, padding: "16px", textAlign: "center" as const, cursor: "pointer", background: "#f9f8f6", transition: "border-color 0.2s", marginBottom: 14 },
+  loadedBanner: { background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 8, padding: "12px 16px", marginBottom: 16, display: "flex", alignItems: "center", justifyContent: "space-between" },
 };
 
-export default function CareerBuilderPage() {
-  const router = useRouter();
-  const [step, setStep] = useState(0);
-  const [data, setData] = useState(initialData);
-  const [saved, setSaved] = useState(false);
-  const [outputMode, setOutputMode] = useState("full");
+function JobSitesPanel() {
+  const allSiteNames = JOB_SITES.flatMap(g => g.sites.map(s => s.name));
+  const [checked, setChecked] = useState<string[]>(allSiteNames);
 
-  // 起動時にlocalStorageから復元
-  useEffect(() => {
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) setData(JSON.parse(stored));
-    } catch { /* 無視 */ }
-  }, []);
-
-  // データ変更時に自動保存
-  useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-      setSaved(true);
-      const t = setTimeout(() => setSaved(false), 2000);
-      return () => clearTimeout(t);
-    } catch { /* 無視 */ }
-  }, [data]);
-
-  const update = useCallback((section: string, field: string, value: any) => {
-    setData(prev => ({ ...prev, [section]: { ...(prev as any)[section], [field]: value } }));
-  }, []);
-
-  const toggleTech = useCallback((cat: string, item: string) => {
-    setData(prev => {
-      const arr = (prev.tech as any)[cat] as string[];
-      return { ...prev, tech: { ...prev.tech, [cat]: arr.includes(item) ? arr.filter((x: string) => x !== item) : [...arr, item] } };
-    });
-  }, []);
-
-  const updateProject = useCallback((idx: number, field: string, value: any) => {
-    setData(prev => {
-      const projects = [...prev.projects];
-      projects[idx] = { ...projects[idx], [field]: value };
-      return { ...prev, projects };
-    });
-  }, []);
-
-  const togglePhase = useCallback((idx: number, phase: string) => {
-    setData(prev => {
-      const projects = [...prev.projects];
-      const phases = projects[idx].phase;
-      projects[idx] = { ...projects[idx], phase: phases.includes(phase) ? phases.filter(p => p !== phase) : [...phases, phase] };
-      return { ...prev, projects };
-    });
-  }, []);
-
-  const toggleJobType = useCallback((type: string) => {
-    setData(prev => {
-      const arr = prev.working.jobType;
-      return { ...prev, working: { ...prev.working, jobType: arr.includes(type) ? arr.filter(x => x !== type) : [...arr, type] } };
-    });
-  }, []);
-
-  // CSVエクスポート
-  const exportCSV = () => {
-    const rows = [
-      ["セクション", "項目", "内容"],
-      ["基本情報", "氏名", data.basic.name],
-      ["基本情報", "フリガナ", data.basic.furigana],
-      ["基本情報", "年齢", data.basic.age],
-      ["基本情報", "性別", data.basic.gender],
-      ["基本情報", "最寄駅", `${data.basic.station}（${data.basic.line}）`],
-      ["基本情報", "学歴", data.basic.education],
-      ["基本情報", "資格", data.basic.certifications],
-      ["自己PR", "短文", data.pr.short],
-      ["自己PR", "中文", data.pr.medium],
-      ["自己PR", "長文", data.pr.long],
-      ["スキルサマリ", "コンサルスキル", data.summary.consulting],
-      ["スキルサマリ", "マネジメントスキル", data.summary.management],
-      ["スキルサマリ", "ITスキル", data.summary.it],
-      ["技術スタック", "言語", data.tech.language.join("、")],
-      ["技術スタック", "FW", data.tech.framework.join("、")],
-      ["技術スタック", "DB", data.tech.db.join("、")],
-      ["技術スタック", "OS", data.tech.os.join("、")],
-      ["技術スタック", "クラウド", data.tech.cloud.join("、")],
-      ["技術スタック", "AI/ML", data.tech.ai.join("、")],
-      ["技術スタック", "ツール", data.tech.tools.join("、")],
-      ["技術スタック", "その他", data.tech.other],
-      ...data.projects.flatMap((p, i) => [
-        [`職務経歴${i + 1}`, "期間", `${p.from} 〜 ${p.present ? "現在" : p.to}`],
-        [`職務経歴${i + 1}`, "案件名", p.title],
-        [`職務経歴${i + 1}`, "案件概要", p.overview],
-        [`職務経歴${i + 1}`, "ポジション", p.position],
-        [`職務経歴${i + 1}`, "規模", p.scale],
-        [`職務経歴${i + 1}`, "担当フェーズ", p.phase.join("、")],
-        [`職務経歴${i + 1}`, "業務内容", p.work],
-        [`職務経歴${i + 1}`, "開発環境", p.env],
-      ]),
-      ["稼働条件", "希望単価", `${data.working.rateMin ? data.working.rateMin + "円" : ""}〜${data.working.rateMax ? data.working.rateMax + "円" : ""}（${data.working.rateUnit}）`],
-      ["稼働条件", "稼働日数", data.working.daysPerWeek],
-      ["稼働条件", "稼働時間", data.working.hoursPerDay],
-      ["稼働条件", "稼働曜日", data.working.weekdays.join("、")],
-      ["稼働条件", "リモート希望", data.working.remote],
-      ["稼働条件", "勤務可能エリア", data.working.location],
-      ["稼働条件", "参画可能時期", data.working.available],
-      ["稼働条件", "希望職種", data.working.jobType.join("、")],
-    ];
-    const csv = rows.map(r => r.map(c => `"${String(c ?? "").replace(/"/g, '""')}"`).join(",")).join("\n");
-    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = `career_${data.basic.name || "data"}.csv`;
-    a.click();
-  };
-
-  // 求人マッチング診断へ遷移（localStorageに保存済みなのでそのまま遷移）
-  const goToMatcher = () => {
-    router.push("/");
-  };
-
-  const prText = outputMode === "agent" ? data.pr.medium : data.pr.long;
+  const toggle = (name: string) =>
+    setChecked(prev => prev.includes(name) ? prev.filter(n => n !== name) : [...prev, name]);
+  const toggleAll = () => setChecked(prev => prev.length === allSiteNames.length ? [] : allSiteNames);
 
   return (
-    <div style={s.wrap}>
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;600;700&display=swap');
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        input:focus, textarea:focus, select:focus { border-color: #e85d26 !important; box-shadow: 0 0 0 3px rgba(232,93,38,0.1); }
-        input::placeholder, textarea::placeholder { color: #bbb; }
-        input:disabled { background: #f5f5f2 !important; color: #aaa !important; }
-        @media (max-width: 580px) { .grid2 { grid-template-columns: 1fr !important; } }
-      `}</style>
-
-      {/* Header */}
-      <div style={s.header}>
-        <div style={s.headerInner}>
-          <div style={s.logoWrap}>
-            <div style={s.logoIcon}>C</div>
-            <div>
-              <div style={{ fontSize: 16, fontWeight: 700, color: "#1a1a1a" }}>Career Builder</div>
-              <div style={{ fontSize: 10, color: "#aaa" }}>職務経歴書・スキルシート作成</div>
-            </div>
+    <div style={{ ...s.card, height: "fit-content", position: "sticky", top: 80 }}>
+      <div style={s.cardTitle}><div style={s.cardTitleBar} />求人サイト一覧</div>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12, paddingLeft: 12 }}>
+        <span style={{ fontSize: 11, color: "#aaa" }}>表示するサイトを選択</span>
+        <button
+          onClick={toggleAll}
+          style={{ fontSize: 10, fontWeight: 600, padding: "3px 10px", borderRadius: 20, border: "1px solid #e0ddd8", background: "#fff", cursor: "pointer", color: "#666" }}
+        >
+          {checked.length === allSiteNames.length ? "すべて解除" : "すべて選択"}
+        </button>
+      </div>
+      {JOB_SITES.map((group) => (
+        <div key={group.category} style={{ marginBottom: 20 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: group.color, letterSpacing: "0.05em", marginBottom: 8, display: "flex", alignItems: "center", gap: 6 }}>
+            {group.category}
+            <div style={{ flex: 1, height: 1, background: "#f0ede8" }} />
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            {saved && <span style={s.savedBadge}>✓ 自動保存済み</span>}
-            <span style={{ fontSize: 12, fontWeight: 700, background: "#fff3ee", color: "#e85d26", padding: "4px 14px", borderRadius: 20, border: "1px solid #ffd0c0" }}>
-              {step + 1} / {STEPS.length}　{STEPS[step].icon} {STEPS[step].label}
-            </span>
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            {group.sites.map((site) => {
+              const isChecked = checked.includes(site.name);
+              return (
+                <div key={site.name} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <input
+                    type="checkbox"
+                    checked={isChecked}
+                    onChange={() => toggle(site.name)}
+                    style={{ flexShrink: 0, width: 14, height: 14, accentColor: "#e85d26", cursor: "pointer" }}
+                  />
+                  <a href={site.url} target="_blank" rel="noopener noreferrer"
+                    style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 10px", background: isChecked ? "#f9f8f6" : "#f5f5f5", borderRadius: 8, border: `1px solid ${isChecked ? "#ede9e3" : "#e8e8e8"}`, textDecoration: "none", transition: "all 0.15s", gap: 6, opacity: isChecked ? 1 : 0.4 }}
+                    onMouseEnter={e => { if (isChecked) { (e.currentTarget as HTMLElement).style.background = "#fff3ee"; (e.currentTarget as HTMLElement).style.borderColor = "#ffd0c0"; } }}
+                    onMouseLeave={e => { if (isChecked) { (e.currentTarget as HTMLElement).style.background = "#f9f8f6"; (e.currentTarget as HTMLElement).style.borderColor = "#ede9e3"; } }}
+                  >
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 12, fontWeight: 600, color: "#1a1a1a", marginBottom: 1 }}>{site.name}</div>
+                      <div style={{ fontSize: 10, color: "#888" }}>{site.desc}</div>
+                    </div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 4, flexShrink: 0 }}>
+                      <span style={{ fontSize: 9, fontWeight: 700, padding: "2px 6px", borderRadius: 20, background: group.color + "18", color: group.color }}>{site.tag}</span>
+                      <span style={{ color: "#bbb", fontSize: 11 }}>↗</span>
+                    </div>
+                  </a>
+                </div>
+              );
+            })}
           </div>
         </div>
-
-        {/* ステップバー */}
-        <div style={{ maxWidth: 860, margin: "0 auto", padding: "0 20px 10px", display: "flex", alignItems: "center", overflowX: "auto" }}>
-          {STEPS.map((st, i) => (
-            <div key={i} style={{ display: "flex", alignItems: "center", flex: i < STEPS.length - 1 ? "1 1 0" : "0 0 auto" }}>
-              <div onClick={() => setStep(i)} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 3, cursor: "pointer", flexShrink: 0 }}>
-                <div style={{ width: 24, height: 24, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700, background: i < step ? "#e85d26" : i === step ? "#e85d26" : "#f0ede8", color: i <= step ? "#fff" : "#bbb", boxShadow: i === step ? "0 0 0 3px rgba(232,93,38,0.2)" : "none" }}>
-                  {i < step ? "✓" : i + 1}
-                </div>
-                <span style={{ fontSize: 9, fontWeight: i === step ? 700 : 400, color: i === step ? "#e85d26" : i < step ? "#888" : "#ccc", whiteSpace: "nowrap" }}>{st.label}</span>
-              </div>
-              {i < STEPS.length - 1 && <div style={{ flex: 1, height: 2, background: i < step ? "#e85d26" : "#f0ede8", margin: "0 3px 14px" }} />}
-            </div>
-          ))}
+      ))}
+      {checked.length > 0 && (
+        <div style={{ marginTop: 8, padding: "8px 12px", background: "#fff3ee", borderRadius: 8, fontSize: 11, color: "#e85d26", fontWeight: 600 }}>
+          {checked.length}サイトを表示中
         </div>
-      </div>
-
-      {/* Main */}
-      <div style={s.main}>
-
-        {/* STEP 0: 基本情報 */}
-        {step === 0 && (
-          <div style={s.card}>
-            <div style={s.sectionTitle}><div style={s.bar} />基本情報</div>
-            <div style={s.desc}>プロフィールの基本情報を入力してください</div>
-            <div style={{ ...s.grid2, marginBottom: 14 }} className="grid2">
-              {[["name","氏名","山田 太郎"],["furigana","フリガナ","ヤマダ タロウ"],["age","年齢","30"],["gender","性別","男性"],["station","最寄駅","渋谷駅"],["line","路線","JR山手線"]].map(([f,l,p]) => (
-                <div key={f}>
-                  <label style={s.label}>{l}</label>
-                  <input style={s.inp} placeholder={p} value={(data.basic as any)[f]} onChange={e => update("basic", f, e.target.value)} />
-                </div>
-              ))}
-            </div>
-            <div style={{ marginBottom: 14 }}>
-              <label style={s.label}>最終学歴</label>
-              <input style={s.inp} placeholder="例：〇〇大学 情報工学部 卒業（2018年3月）" value={data.basic.education} onChange={e => update("basic", "education", e.target.value)} />
-            </div>
-            <div>
-              <label style={s.label}>保有資格・認定</label>
-              <div style={s.hint}>複数ある場合は読点（、）で区切って入力</div>
-              <textarea style={{ ...s.inp, minHeight: 60 }} placeholder="例：応用情報技術者、FP2級、AWS SAA、G検定" value={data.basic.certifications} onChange={e => update("basic", "certifications", e.target.value)} />
-            </div>
-          </div>
-        )}
-
-        {/* STEP 1: 自己PR */}
-        {step === 1 && (
-          <div>
-            {[["short","短文（100文字目安）","クラウドワークス・ランサーズ向け",3,100],["medium","中文（400文字目安）","レバテック・ビズリーチ向け",7,400],["long","長文（800文字目安）","LinkedIn・Wantedly・職務経歴書フル版向け",14,800]].map(([f,l,hint,rows,target]) => (
-              <div style={s.card} key={f as string}>
-                <div style={s.sectionTitle}><div style={s.bar} />{l as string}</div>
-                <div style={s.desc}>{hint as string}</div>
-                <textarea style={{ ...s.inp, minHeight: Number(rows) * 24 }} placeholder={`${l}の自己PRを入力…`} value={(data.pr as any)[f as string]} onChange={e => update("pr", f as string, e.target.value)} />
-                <div style={{ fontSize: 11, textAlign: "right", marginTop: 4, color: (data.pr as any)[f as string].length > Number(target) * 1.2 ? "#e85d26" : "#bbb" }}>
-                  {(data.pr as any)[f as string].length} 文字（目安 {target}文字）
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* STEP 2: スキルサマリ */}
-        {step === 2 && (
-          <div>
-            {[["consulting","コンサルティングスキル","顧客折衝・要件定義・提案・業務改善などの経験"],["management","マネジメントスキル","PM・PL経験、チーム規模、管理業務などを具体的に"],["it","ITスキル・テクニカルスキル","開発フェーズ経験、業界知見、先端技術を記載"]].map(([f,l,hint]) => (
-              <div style={s.card} key={f}>
-                <div style={s.sectionTitle}><div style={s.bar} />{l}</div>
-                <div style={s.desc}>{hint}</div>
-                <textarea style={{ ...s.inp, minHeight: 160 }} placeholder={`・〇〇の経験\n・〇〇を担当`} value={(data.summary as any)[f]} onChange={e => update("summary", f, e.target.value)} />
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* STEP 3: 技術スタック */}
-        {step === 3 && (
-          <div style={s.card}>
-            <div style={s.sectionTitle}><div style={s.bar} />技術スタック</div>
-            <div style={s.desc}>使用経験のある技術をすべて選択してください</div>
-            {Object.entries(TECH_OPTIONS).map(([cat, items]) => (
-              <div key={cat} style={{ marginBottom: 20 }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: "#e85d26", letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 8, display: "flex", alignItems: "center", gap: 8 }}>
-                  {TECH_LABELS[cat]}
-                  <div style={{ flex: 1, height: 1, background: "#f0ede8" }} />
-                </div>
-                <div style={s.tagsWrap}>
-                  {items.map(item => {
-                    const on = ((data.tech as any)[cat] as string[]).includes(item);
-                    return (
-                      <div key={item} style={{ ...s.tag, ...(on ? s.tagOn : s.tagOff) }} onClick={() => toggleTech(cat, item)}>
-                        {on && <span style={{ fontSize: 10 }}>✓</span>}{item}
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            ))}
-            <div>
-              <label style={s.label}>その他</label>
-              <input style={s.inp} placeholder="例：Redmine、Backlog、Power Platform" value={data.tech.other} onChange={e => update("tech", "other", e.target.value)} />
-            </div>
-          </div>
-        )}
-
-        {/* STEP 4: 職務経歴 */}
-        {step === 4 && (
-          <div>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-              <div style={{ fontSize: 15, fontWeight: 700 }}>職務経歴</div>
-              <button style={{ ...s.btn, ...s.btnPrimary, padding: "8px 16px", fontSize: 13 }} onClick={() => setData(prev => ({ ...prev, projects: [...prev.projects, { ...emptyProject }] }))}>＋ 案件追加</button>
-            </div>
-            {data.projects.map((p, i) => (
-              <div style={s.projectCard} key={i}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-                  <span style={s.projectNum}>案件 {i + 1}</span>
-                  {data.projects.length > 1 && (
-                    <button style={{ ...s.btn, background: "#fff", color: "#e85d26", border: "1.5px solid #ffd0c0", padding: "4px 12px", fontSize: 12 }} onClick={() => setData(prev => ({ ...prev, projects: prev.projects.filter((_, j) => j !== i) }))}>削除</button>
-                  )}
-                </div>
-                <div style={{ ...s.grid2, marginBottom: 14 }} className="grid2">
-                  <div>
-                    <label style={s.label}>開始年月</label>
-                    <input style={s.inp} type="month" value={p.from} onChange={e => updateProject(i, "from", e.target.value)} />
-                  </div>
-                  <div>
-                    <label style={s.label}>終了年月</label>
-                    <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                      <input style={{ ...s.inp, flex: 1 }} type="month" value={p.to} disabled={p.present} onChange={e => updateProject(i, "to", e.target.value)} />
-                      <label style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 13, cursor: "pointer", whiteSpace: "nowrap" }}>
-                        <input type="checkbox" checked={p.present} onChange={e => updateProject(i, "present", e.target.checked)} /> 現在
-                      </label>
-                    </div>
-                  </div>
-                </div>
-                <div style={{ marginBottom: 14 }}>
-                  <label style={s.label}>案件名</label>
-                  <input style={s.inp} placeholder="例：大手生命保険会社 基幹システム刷新PJ" value={p.title} onChange={e => updateProject(i, "title", e.target.value)} />
-                </div>
-                <div style={{ ...s.grid2, marginBottom: 14 }} className="grid2">
-                  <div>
-                    <label style={s.label}>ポジション</label>
-                    <input style={s.inp} placeholder="例：PM / PL / メンバー" value={p.position} onChange={e => updateProject(i, "position", e.target.value)} />
-                  </div>
-                  <div>
-                    <label style={s.label}>チーム規模</label>
-                    <input style={s.inp} placeholder="例：全体30名・配下4名" value={p.scale} onChange={e => updateProject(i, "scale", e.target.value)} />
-                  </div>
-                </div>
-                <div style={{ marginBottom: 14 }}>
-                  <label style={s.label}>案件概要</label>
-                  <textarea style={{ ...s.inp, minHeight: 70 }} placeholder="プロジェクトの背景・目的・概要" value={p.overview} onChange={e => updateProject(i, "overview", e.target.value)} />
-                </div>
-                <div style={{ marginBottom: 14 }}>
-                  <label style={s.label}>担当フェーズ</label>
-                  <div style={{ ...s.tagsWrap, marginTop: 6 }}>
-                    {PHASES.map(ph => {
-                      const on = p.phase.includes(ph);
-                      return (
-                        <div key={ph} style={{ ...s.tag, ...(on ? s.tagOn : s.tagOff) }} onClick={() => togglePhase(i, ph)}>
-                          {on && <span style={{ fontSize: 10 }}>✓</span>}{ph}
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-                <div style={{ marginBottom: 14 }}>
-                  <label style={s.label}>業務内容</label>
-                  <textarea style={{ ...s.inp, minHeight: 130 }} placeholder="■コンサルティング業務&#10;・顧客折衝&#10;&#10;■マネジメント業務&#10;・タスク管理" value={p.work} onChange={e => updateProject(i, "work", e.target.value)} />
-                </div>
-                <div>
-                  <label style={s.label}>開発環境</label>
-                  <textarea style={{ ...s.inp, minHeight: 70 }} placeholder="OS：Windows&#10;言語：Python&#10;DB：Oracle" value={p.env} onChange={e => updateProject(i, "env", e.target.value)} />
-                </div>
-              </div>
-            ))}
-            <button style={{ ...s.btn, ...s.btnGhost, width: "100%", marginTop: 4 }} onClick={() => setData(prev => ({ ...prev, projects: [...prev.projects, { ...emptyProject }] }))}>＋ 案件をさらに追加</button>
-          </div>
-        )}
-
-        {/* STEP 5: 稼働条件 */}
-        {step === 5 && (
-          <div>
-            <div style={s.card}>
-              <div style={s.sectionTitle}><div style={s.bar} />希望単価・稼働条件</div>
-              <div style={s.desc}>エージェント登録・直接営業時に活用します</div>
-
-              {/* 希望単価 */}
-              <div style={{ marginBottom: 16 }}>
-                <label style={s.label}>希望単価</label>
-                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                  <input style={{ ...s.inp, flex: 1 }} placeholder="下限（例：500,000）" value={data.working.rateMin} onChange={e => update("working", "rateMin", e.target.value)} />
-                  <span style={{ color: "#888", fontSize: 13, flexShrink: 0 }}>〜</span>
-                  <input style={{ ...s.inp, flex: 1 }} placeholder="上限（例：800,000）" value={data.working.rateMax} onChange={e => update("working", "rateMax", e.target.value)} />
-                  <select style={{ ...s.inp, width: 74, padding: "10px 8px", flexShrink: 0 }} value={data.working.rateUnit} onChange={e => update("working", "rateUnit", e.target.value)}>
-                    <option>月額</option><option>時給</option><option>日額</option>
-                  </select>
-                </div>
-              </div>
-
-              {/* 稼働日数・時間・曜日 */}
-              <div style={{ ...s.grid2, marginBottom: 16 }} className="grid2">
-                <div>
-                  <label style={s.label}>稼働可能日数（週）</label>
-                  <select style={s.inp} value={data.working.daysPerWeek} onChange={e => update("working", "daysPerWeek", e.target.value)}>
-                    <option value="">選択してください</option>
-                    <option>週1日（月4〜5日）</option>
-                    <option>週2日（月8〜10日）</option>
-                    <option>週3日（月12〜15日）</option>
-                    <option>週4日（月16〜20日）</option>
-                    <option>週5日（フルタイム）</option>
-                    <option>応相談</option>
-                  </select>
-                </div>
-                <div>
-                  <label style={s.label}>稼働可能時間（1日）</label>
-                  <select style={s.inp} value={data.working.hoursPerDay} onChange={e => update("working", "hoursPerDay", e.target.value)}>
-                    <option value="">選択してください</option>
-                    <option>1日4時間（半日）</option>
-                    <option>1日6時間</option>
-                    <option>1日8時間（フルタイム）</option>
-                    <option>応相談</option>
-                  </select>
-                </div>
-              </div>
-
-              {/* 稼働曜日 */}
-              <div style={{ marginBottom: 16 }}>
-                <label style={s.label}>稼働可能曜日</label>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 6 }}>
-                  {["平日（月〜金）", "土曜日", "日曜日", "祝日"].map(day => {
-                    const on = data.working.weekdays.includes(day);
-                    return (
-                      <div key={day}
-                        style={{ ...s.tag, ...(on ? s.tagOn : s.tagOff) }}
-                        onClick={() => {
-                          const arr = data.working.weekdays;
-                          update("working", "weekdays", on ? arr.filter((d: string) => d !== day) : [...arr, day]);
-                        }}
-                      >
-                        {on && <span style={{ fontSize: 10 }}>✓</span>}{day}
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              <div style={{ ...s.grid2, marginBottom: 0 }} className="grid2">
-                <div>
-                  <label style={s.label}>リモート希望</label>
-                  <select style={s.inp} value={data.working.remote} onChange={e => update("working", "remote", e.target.value)}>
-                    <option value="">選択してください</option>
-                    <option>フルリモート希望</option>
-                    <option>週1〜2日出社可</option>
-                    <option>常駐可（要相談）</option>
-                    <option>応相談</option>
-                  </select>
-                </div>
-                <div>
-                  <label style={s.label}>勤務可能エリア</label>
-                  <input style={s.inp} placeholder="例：東京・神奈川・フルリモート" value={data.working.location} onChange={e => update("working", "location", e.target.value)} />
-                </div>
-                <div>
-                  <label style={s.label}>参画可能時期</label>
-                  <input style={s.inp} placeholder="例：即日〜 / 2025年4月以降" value={data.working.available} onChange={e => update("working", "available", e.target.value)} />
-                </div>
-              </div>
-            </div>
-            <div style={s.card}>
-              <div style={s.sectionTitle}><div style={s.bar} />希望職種・案件種別</div>
-              <div style={s.desc}>複数選択可</div>
-              <div style={s.tagsWrap}>
-                {JOB_TYPES.map(t => {
-                  const on = data.working.jobType.includes(t);
-                  return (
-                    <div key={t} style={{ ...s.tag, ...(on ? s.tagOn : s.tagOff) }} onClick={() => toggleJobType(t)}>
-                      {on && <span style={{ fontSize: 10 }}>✓</span>}{t}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* STEP 6: プレビュー・出力 */}
-        {step === 6 && (
-          <div>
-            {/* 出力モード */}
-            <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
-              {[["full","📄 職務経歴書（フル版）"],["skill","📋 スキルシート"],["agent","📨 エージェント提出用"]].map(([m,l]) => (
-                <button key={m} onClick={() => setOutputMode(m)} style={{ flex: 1, padding: "10px 8px", borderRadius: 8, border: `1.5px solid ${outputMode === m ? "#e85d26" : "#e0ddd8"}`, background: outputMode === m ? "#fff3ee" : "#fff", color: outputMode === m ? "#e85d26" : "#666", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>{l}</button>
-              ))}
-            </div>
-
-            {/* プレビュー */}
-            <div style={{ background: "#fff", borderRadius: 12, padding: 36, boxShadow: "0 2px 12px rgba(0,0,0,0.08)", marginBottom: 16 }}>
-              <div style={{ fontSize: 22, fontWeight: 700, textAlign: "center", marginBottom: 6 }}>{outputMode === "skill" ? "スキルシート" : "職務経歴書"}</div>
-              <div style={{ fontSize: 17, fontWeight: 600, textAlign: "center", marginBottom: 4 }}>{data.basic.name || "（氏名未入力）"}</div>
-              <div style={{ fontSize: 12, color: "#888", textAlign: "center", marginBottom: 24 }}>
-                {[data.basic.age && `${data.basic.age}歳`, data.basic.gender, data.basic.station && `最寄：${data.basic.station}`].filter(Boolean).join("　｜　")}
-              </div>
-              <hr style={{ border: "none", borderTop: "2px solid #e85d26", marginBottom: 20 }} />
-
-              {data.basic.certifications && (
-                <div style={{ marginBottom: 20 }}>
-                  <div style={{ fontWeight: 700, fontSize: 13, background: "#f8f7f4", padding: "7px 12px", borderLeft: "4px solid #e85d26", borderRadius: "0 6px 6px 0", marginBottom: 10 }}>保有資格</div>
-                  <div style={{ fontSize: 13 }}>{data.basic.certifications}</div>
-                </div>
-              )}
-
-              {(outputMode === "full" || outputMode === "agent") && prText && (
-                <div style={{ marginBottom: 20 }}>
-                  <div style={{ fontWeight: 700, fontSize: 13, background: "#f8f7f4", padding: "7px 12px", borderLeft: "4px solid #e85d26", borderRadius: "0 6px 6px 0", marginBottom: 10 }}>自己PR</div>
-                  <div style={{ fontSize: 13, lineHeight: 1.9, whiteSpace: "pre-wrap" }}>{prText}</div>
-                </div>
-              )}
-
-              {(data.summary.consulting || data.summary.management || data.summary.it) && (
-                <div style={{ marginBottom: 20 }}>
-                  <div style={{ fontWeight: 700, fontSize: 13, background: "#f8f7f4", padding: "7px 12px", borderLeft: "4px solid #e85d26", borderRadius: "0 6px 6px 0", marginBottom: 10 }}>スキルサマリ</div>
-                  {[["コンサルティングスキル", data.summary.consulting],["マネジメントスキル", data.summary.management],["ITスキル", data.summary.it]].filter(([,v]) => v).map(([l,v]) => (
-                    <div key={l} style={{ marginBottom: 12 }}>
-                      <div style={{ fontWeight: 700, fontSize: 12, color: "#e85d26", marginBottom: 4 }}>【{l}】</div>
-                      <div style={{ fontSize: 13, lineHeight: 1.9, whiteSpace: "pre-wrap" }}>{v}</div>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              <div style={{ marginBottom: 20 }}>
-                <div style={{ fontWeight: 700, fontSize: 13, background: "#f8f7f4", padding: "7px 12px", borderLeft: "4px solid #e85d26", borderRadius: "0 6px 6px 0", marginBottom: 10 }}>技術スタック</div>
-                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
-                  <tbody>
-                    {[["言語",data.tech.language],["FW",data.tech.framework],["DB",data.tech.db],["OS",data.tech.os],["クラウド",data.tech.cloud],["AI/ML",data.tech.ai],["ツール",[...data.tech.tools,...(data.tech.other?[data.tech.other]:[])]]]
-                      .filter(([,v]) => (v as string[]).length > 0)
-                      .map(([l,v]) => (
-                        <tr key={l as string} style={{ borderBottom: "1px solid #f5f3ef" }}>
-                          <td style={{ padding: "7px 10px", fontWeight: 600, color: "#666", width: 80 }}>{l as string}</td>
-                          <td style={{ padding: "7px 10px" }}>{(v as string[]).join("　/　")}</td>
-                        </tr>
-                      ))}
-                  </tbody>
-                </table>
-              </div>
-
-              {outputMode !== "agent" && data.projects.some(p => p.title) && (
-                <div style={{ marginBottom: 20 }}>
-                  <div style={{ fontWeight: 700, fontSize: 13, background: "#f8f7f4", padding: "7px 12px", borderLeft: "4px solid #e85d26", borderRadius: "0 6px 6px 0", marginBottom: 10 }}>職務経歴</div>
-                  {data.projects.filter(p => p.title).map((p, i) => (
-                    <div key={i} style={{ background: "#f9f8f6", border: "1px solid #ede9e3", borderRadius: 8, padding: 16, marginBottom: 12 }}>
-                      <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 8 }}>{p.title}</div>
-                      <div style={{ display: "flex", gap: 16, fontSize: 12, color: "#888", marginBottom: 8, flexWrap: "wrap" }}>
-                        {p.from && <span>📅 {p.from} 〜 {p.present ? "現在" : p.to}</span>}
-                        {p.position && <span>👤 {p.position}</span>}
-                        {p.scale && <span>👥 {p.scale}</span>}
-                      </div>
-                      {p.overview && <div style={{ fontSize: 12, marginBottom: 8, lineHeight: 1.8 }}>{p.overview}</div>}
-                      {p.phase.length > 0 && <div style={{ fontSize: 12, color: "#888", marginBottom: 8 }}>担当フェーズ：{p.phase.join("　/　")}</div>}
-                      {p.work && <div style={{ fontSize: 13, lineHeight: 1.9, whiteSpace: "pre-wrap" }}>{p.work}</div>}
-                      {p.env && <div style={{ fontSize: 12, color: "#777", background: "#f0ede8", padding: "8px 12px", borderRadius: 6, whiteSpace: "pre-wrap", marginTop: 8 }}>{p.env}</div>}
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {(outputMode === "full" || outputMode === "agent") && (
-                <div>
-                  <div style={{ fontWeight: 700, fontSize: 13, background: "#f8f7f4", padding: "7px 12px", borderLeft: "4px solid #e85d26", borderRadius: "0 6px 6px 0", marginBottom: 10 }}>稼働条件</div>
-                  <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
-                    <tbody>
-                      {[["希望単価", (data.working.rateMin || data.working.rateMax) ? `${data.working.rateMin ? data.working.rateMin + "円" : ""}〜${data.working.rateMax ? data.working.rateMax + "円" : ""}（${data.working.rateUnit}）` : ""],["稼働日数",data.working.daysPerWeek],["稼働時間",data.working.hoursPerDay],["稼働曜日",data.working.weekdays.join("、")],["リモート",data.working.remote],["勤務エリア",data.working.location],["参画可能時期",data.working.available],["希望職種",data.working.jobType.join("　/　")]]
-                        .filter(([,v]) => v)
-                        .map(([l,v]) => (
-                          <tr key={l} style={{ borderBottom: "1px solid #f5f3ef" }}>
-                            <td style={{ padding: "7px 10px", fontWeight: 600, color: "#666", width: 110 }}>{l}</td>
-                            <td style={{ padding: "7px 10px" }}>{v}</td>
-                          </tr>
-                        ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
-
-            {/* 出力ボタン群 */}
-            <div style={{ display: "flex", gap: 10, marginBottom: 12 }}>
-              <button style={{ ...s.btn, ...s.btnPrimary, flex: 1 }} onClick={() => window.print()}>🖨　印刷・PDF保存</button>
-              <button style={{ ...s.btn, ...s.btnGhost, flex: 1 }} onClick={exportCSV}>📥 CSVエクスポート</button>
-            </div>
-
-            {/* 求人マッチング診断へ */}
-            <button
-              style={{ ...s.btn, ...s.btnMatch, width: "100%", fontSize: 15, padding: "14px", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}
-              onClick={goToMatcher}
-            >
-              求人マッチング診断へ進む →
-            </button>
-            <div style={{ fontSize: 11, color: "#aaa", textAlign: "center", marginTop: 8 }}>
-              入力データは自動保存されているので、そのまま診断に使えます
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Footer Nav */}
-      <div style={s.footer}>
-        <button style={{ ...s.btn, ...s.btnGhost, opacity: step === 0 ? 0.3 : 1, minWidth: 90 }} onClick={() => setStep(s => Math.max(0, s - 1))} disabled={step === 0}>← 前へ</button>
-        <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-          {STEPS.map((_, i) => (
-            <div key={i} onClick={() => setStep(i)} style={{ cursor: "pointer", width: i === step ? 20 : 6, height: 6, borderRadius: 3, background: i === step ? "#e85d26" : i < step ? "#ffb89a" : "#f0ede8", transition: "all 0.2s" }} />
-          ))}
-        </div>
-        {step < STEPS.length - 1
-          ? <button style={{ ...s.btn, ...s.btnPrimary, minWidth: 90 }} onClick={() => setStep(s => s + 1)}>次へ →</button>
-          : <div style={{ minWidth: 90 }} />
-        }
-      </div>
+      )}
     </div>
   );
 }
 
+export default function Home() {
+  const [step, setStep] = useState<"input" | "result">("input");
+  const [job, setJob] = useState<JobInput>(emptyJob);
+  const [career, setCareer] = useState<CareerInput>(emptyCareer);
+  const [result, setResult] = useState<MatchResult | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [reqSkillInput, setReqSkillInput] = useState("");
+  const [prefSkillInput, setPrefSkillInput] = useState("");
+  const [dragging, setDragging] = useState(false);
+  const [loadedFromStorage, setLoadedFromStorage] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      if (!stored) return;
+      const data = JSON.parse(stored);
+      const loaded: CareerInput = {
+        name: data.basic?.name ?? "",
+        skills: [data.tech?.language, data.tech?.framework, data.tech?.db, data.tech?.cloud, data.tech?.ai, data.tech?.tools].flat().filter(Boolean).join("、"),
+        summary_consulting: data.summary?.consulting ?? "",
+        summary_management: data.summary?.management ?? "",
+        summary_it: data.summary?.it ?? "",
+        projects: (data.projects ?? []).map((p: any) => [p.title, p.overview, p.work].filter(Boolean).join(" ")).join(" "),
+      };
+      if (loaded.name || loaded.skills) { setCareer(loaded); setLoadedFromStorage(true); }
+    } catch { /* 無視 */ }
+  }, []);
+
+  const addSkill = (type: "required" | "preferred", value: string) => {
+    const v = value.trim(); if (!v) return;
+    const tags = v.split(/[,、\s]+/).filter(Boolean);
+    setJob(prev => ({ ...prev, [type === "required" ? "required_skills" : "preferred_skills"]: [...prev[type === "required" ? "required_skills" : "preferred_skills"], ...tags] }));
+    type === "required" ? setReqSkillInput("") : setPrefSkillInput("");
+  };
+
+  const removeSkill = (type: "required" | "preferred", i: number) => {
+    const key = type === "required" ? "required_skills" : "preferred_skills";
+    setJob(prev => ({ ...prev, [key]: prev[key].filter((_, j) => j !== i) }));
+  };
+
+  const handleCSV = async (file: File) => {
+    const form = new FormData(); form.append("file", file);
+    try {
+      const res = await fetch(`/api/parse-csv`, { method: "POST", body: form });
+      if (!res.ok) throw new Error(await res.text());
+      setCareer(await res.json()); setLoadedFromStorage(false);
+    } catch (e: any) { setError(`CSV読み込みエラー: ${e.message}`); }
+  };
+
+  const onDrop = async (e: React.DragEvent) => {
+    e.preventDefault(); setDragging(false);
+    const file = e.dataTransfer.files[0];
+    if (file?.name.endsWith(".csv")) await handleCSV(file);
+  };
+
+  const handleMatch = async () => {
+    if (!job.title && !job.description) { setError("求人情報を入力してください"); return; }
+    if (!career.skills && !career.summary_it) { setError("職務経歴を入力してください"); return; }
+    setError(""); setLoading(true);
+    try {
+      const res = await fetch(`/api/match`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ job, career }) });
+      if (!res.ok) throw new Error(await res.text());
+      setResult(await res.json()); setStep("result");
+    } catch (e: any) { setError(`エラー: ${e.message}`); }
+    finally { setLoading(false); }
+  };
+
+  return (
+    <div style={s.wrap}>
+      <div style={s.header}>
+        <div style={s.headerInner}>
+          <div style={s.logo}>
+            <div style={s.logoIcon}>M</div>
+            <div>
+              <div style={{ fontSize: 16, fontWeight: 700, color: "#1a1a1a" }}>求人マッチング診断</div>
+              <div style={{ fontSize: 10, color: "#aaa" }}>Job Matching Analyzer</div>
+            </div>
+          </div>
+          <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+            <a href="/career" style={{ ...s.btn, ...s.btnGhost, padding: "8px 16px", fontSize: 13, textDecoration: "none" }}>✍️ Career Builder</a>
+            {step === "result" && (
+              <button style={{ ...s.btn, ...s.btnGhost, padding: "8px 16px", fontSize: 13 }} onClick={() => { setStep("input"); setResult(null); }}>← 診断をやり直す</button>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div style={s.main}>
+        {step === "input" && (
+          <>
+            <div style={{ marginBottom: 20 }}>
+              <h1 style={{ fontSize: 20, fontWeight: 700, marginBottom: 4 }}>求人票 × 職務経歴書 マッチング診断</h1>
+              <p style={{ fontSize: 13, color: "#888" }}>求人情報と職務経歴を入力して、AIがマッチングスコアと改善アドバイスを生成します</p>
+            </div>
+
+            {loadedFromStorage && (
+              <div style={s.loadedBanner}>
+                <div style={{ fontSize: 13, color: "#16a34a", fontWeight: 600 }}>✓ Career Builder のデータを自動読み込みしました（{career.name}）</div>
+                <button style={{ ...s.btn, ...s.btnGhost, padding: "6px 12px", fontSize: 12 }} onClick={() => { setCareer(emptyCareer); setLoadedFromStorage(false); }}>クリア</button>
+              </div>
+            )}
+
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 280px", gap: 16, marginBottom: 16 }}>
+              {/* 求人票 */}
+              <div style={s.card}>
+                <div style={s.cardTitle}><div style={s.cardTitleBar} />求人票</div>
+                <div style={s.cardDesc}>応募したい求人の情報を入力してください</div>
+                <div style={{ marginBottom: 14 }}>
+                  <label style={s.label}>求人タイトル</label>
+                  <input style={s.inp} placeholder="例：AIエンジニア（副業・週2日〜）" value={job.title} onChange={e => setJob(p => ({ ...p, title: e.target.value }))} />
+                </div>
+                <div style={{ marginBottom: 14 }}>
+                  <label style={s.label}>必須スキル</label>
+                  <div style={{ display: "flex", gap: 6, marginBottom: 8 }}>
+                    <input style={{ ...s.inp, flex: 1 }} placeholder="例：Python, Django（Enterで追加）" value={reqSkillInput} onChange={e => setReqSkillInput(e.target.value)} onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); addSkill("required", reqSkillInput); } }} />
+                    <button style={{ ...s.btn, ...s.btnPrimary, padding: "10px 14px", fontSize: 13 }} onClick={() => addSkill("required", reqSkillInput)}>追加</button>
+                  </div>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                    {job.required_skills.map((sk, i) => <span key={i} style={s.tag} onClick={() => removeSkill("required", i)} title="クリックで削除">{sk} ×</span>)}
+                  </div>
+                </div>
+                <div style={{ marginBottom: 14 }}>
+                  <label style={s.label}>歓迎スキル</label>
+                  <div style={{ display: "flex", gap: 6, marginBottom: 8 }}>
+                    <input style={{ ...s.inp, flex: 1 }} placeholder="例：AWS, Docker（Enterで追加）" value={prefSkillInput} onChange={e => setPrefSkillInput(e.target.value)} onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); addSkill("preferred", prefSkillInput); } }} />
+                    <button style={{ ...s.btn, ...s.btnGhost, padding: "10px 14px", fontSize: 13 }} onClick={() => addSkill("preferred", prefSkillInput)}>追加</button>
+                  </div>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                    {job.preferred_skills.map((sk, i) => <span key={i} style={{ ...s.tag, background: "#f5f5f0", color: "#888", border: "1px solid #e0ddd8" }} onClick={() => removeSkill("preferred", i)} title="クリックで削除">{sk} ×</span>)}
+                  </div>
+                </div>
+                <div>
+                  <label style={s.label}>業務内容・求人詳細</label>
+                  <div style={s.hint}>求人票の本文をそのまま貼り付けてください（精度が上がります）</div>
+                  <textarea style={{ ...s.inp, minHeight: 140 }} placeholder="業務内容・求める人物像などを貼り付け..." value={job.description} onChange={e => setJob(p => ({ ...p, description: e.target.value }))} />
+                </div>
+              </div>
+
+              {/* 職務経歴 */}
+              <div style={s.card}>
+                <div style={s.cardTitle}><div style={s.cardTitleBar} />職務経歴書</div>
+                <div style={s.cardDesc}>{loadedFromStorage ? "Career Builderのデータを読み込み済みです" : "Career BuilderのCSVをアップロード、または手入力"}</div>
+                {!loadedFromStorage && (
+                  <a href="/career" style={{ ...s.btn, background: "#1a1a1a", color: "#fff", width: "100%", marginBottom: 12, fontSize: 13, textDecoration: "none", display: "block", textAlign: "center" as const }}>
+                    ✍️ Career Builder で入力する →
+                  </a>
+                )}
+                <div style={{ ...s.uploaderArea, borderColor: dragging ? "#e85d26" : "#e0ddd8" }}
+                  onDragOver={e => { e.preventDefault(); setDragging(true); }} onDragLeave={() => setDragging(false)} onDrop={onDrop} onClick={() => fileRef.current?.click()}>
+                  <input ref={fileRef} type="file" accept=".csv" style={{ display: "none" }} onChange={e => { const f = e.target.files?.[0]; if (f) handleCSV(f); }} />
+                  <div style={{ fontSize: 20, marginBottom: 4 }}>📥</div>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: "#555" }}>CSVをドロップ</div>
+                  <div style={{ fontSize: 11, color: "#bbb", marginTop: 2 }}>またはクリックして選択</div>
+                </div>
+                <div style={{ marginBottom: 14 }}>
+                  <label style={s.label}>技術スタック</label>
+                  <textarea style={{ ...s.inp, minHeight: 60 }} placeholder="例：Python, Django, Next.js, PostgreSQL, AWS" value={career.skills} onChange={e => setCareer(p => ({ ...p, skills: e.target.value }))} />
+                </div>
+                <div style={{ marginBottom: 14 }}>
+                  <label style={s.label}>ITスキルサマリ</label>
+                  <textarea style={{ ...s.inp, minHeight: 80 }} placeholder="開発フェーズ経験・業界知見・得意技術など" value={career.summary_it} onChange={e => setCareer(p => ({ ...p, summary_it: e.target.value }))} />
+                </div>
+                <div style={{ marginBottom: 14 }}>
+                  <label style={s.label}>コンサルティング・マネジメントスキル</label>
+                  <textarea style={{ ...s.inp, minHeight: 60 }} placeholder="顧客折衝・PM経験など" value={career.summary_consulting} onChange={e => setCareer(p => ({ ...p, summary_consulting: e.target.value }))} />
+                </div>
+                <div>
+                  <label style={s.label}>職務経歴（案件概要・業務内容）</label>
+                  <textarea style={{ ...s.inp, minHeight: 80 }} placeholder="主な案件・担当業務の概要" value={career.projects} onChange={e => setCareer(p => ({ ...p, projects: e.target.value }))} />
+                </div>
+              </div>
+
+              {/* 求人サイト */}
+              <JobSitesPanel />
+            </div>
+
+            {error && <div style={{ background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 8, padding: "12px 16px", color: "#dc2626", fontSize: 13, marginBottom: 16 }}>{error}</div>}
+            <div style={{ textAlign: "center" }}>
+              <button style={{ ...s.btn, ...s.btnPrimary, minWidth: 240, opacity: loading ? 0.7 : 1 }} onClick={handleMatch} disabled={loading}>
+                {loading ? "診断中..." : "🔍　マッチング診断を実行"}
+              </button>
+              {loading && <div style={{ fontSize: 12, color: "#aaa", marginTop: 8 }}>Gemini APIで分析中です（10〜20秒程度）</div>}
+            </div>
+          </>
+        )}
+
+        {step === "result" && result && (
+          <>
+            <div style={{ marginBottom: 20 }}>
+              <h1 style={{ fontSize: 20, fontWeight: 700, marginBottom: 4 }}>診断結果</h1>
+              {career.name && <p style={{ fontSize: 13, color: "#888" }}>{career.name} さん × {job.title || "求人票"}</p>}
+            </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 280px", gap: 16, alignItems: "start" }}>
+              <div>
+                <div style={{ ...s.card, marginBottom: 16 }}>
+                  <div style={s.cardTitle}><div style={s.cardTitleBar} />マッチングスコア</div>
+                  <div style={s.cardDesc}>数値が高いほど求人との適合度が高いことを示します</div>
+                  <div style={{ display: "flex", justifyContent: "center", gap: 32, flexWrap: "wrap" }}>
+                    <ScoreGauge score={result.score_sbert} label="類似度スコア" />
+                    <ScoreGauge score={Math.max(0, 1 - result.missing_skills.length * 0.12)} label="スキルカバー率" color="#7c3aed" />
+                  </div>
+                </div>
+                <div style={s.card}>
+                  <div style={s.cardTitle}><div style={s.cardTitleBar} />不足スキル</div>
+                  <div style={s.cardDesc}>求人が求めるスキルのうち、職務経歴に見当たらないもの</div>
+                  {result.missing_skills.length === 0
+                    ? <div style={{ color: "#16a34a", fontWeight: 600 }}>✓ 不足スキルは検出されませんでした</div>
+                    : <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>{result.missing_skills.map((sk, i) => <span key={i} style={s.tagMissing}>⚠ {sk}</span>)}</div>
+                  }
+                </div>
+              </div>
+
+              <div>
+                <div style={{ ...s.card, marginBottom: 16 }}>
+                  <div style={s.cardTitle}><div style={s.cardTitleBar} />AIによる改善アドバイス</div>
+                  <div style={s.cardDesc}>Gemini APIが職務経歴と求人を分析して生成したアドバイスです</div>
+                  <div style={s.advice}>{result.advice}</div>
+                </div>
+                {result.job_suggestions && (
+                  <div style={s.card}>
+                    <div style={s.cardTitle}><div style={s.cardTitleBar} />応募可能な求人タイプ</div>
+                    <div style={s.cardDesc}>あなたの経験・スキルから導き出した応募戦略です</div>
+                    <div style={s.advice}>{result.job_suggestions}</div>
+                  </div>
+                )}
+              </div>
+
+              <JobSitesPanel />
+            </div>
+
+            <div style={{ display: "flex", gap: 10, justifyContent: "center", marginTop: 16 }}>
+              <button style={{ ...s.btn, ...s.btnPrimary }} onClick={() => { setStep("input"); setResult(null); }}>別の求人で診断</button>
+              <a href="/career" style={{ ...s.btn, ...s.btnGhost, textDecoration: "none" }}>✍️ Career Builderに戻る</a>
+              <button style={{ ...s.btn, ...s.btnGhost }} onClick={() => window.print()}>🖨 印刷・PDF</button>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
