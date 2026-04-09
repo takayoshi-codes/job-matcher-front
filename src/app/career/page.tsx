@@ -216,7 +216,7 @@ export default function CareerBuilderPage() {
       ["稼働条件", "参画可能時期", data.working.available],
       ["稼働条件", "希望職種", data.working.jobType.join("、")],
     ];
-    const csv = rows.map(r => r.map(c => { const v = String(c ?? '').replace(/"/g, '""'); return '"' + v + '"'; }).join(",")).join("\n");
+    const csv = rows.map(r => r.map(c => `"${String(c ?? "").replace(/"/g, '""')}"`).join(",")).join("\n");
     const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
@@ -304,7 +304,7 @@ export default function CareerBuilderPage() {
           </div>
         )}
 
-        {/* STEP 4: 自己PR */}
+        {/* STEP 1: 自己PR */}
         {step === 4 && (
           <div>
             {[["short","短文（100文字目安）","クラウドワークス・ランサーズ向け",3,100],["medium","中文（400文字目安）","レバテック・ビズリーチ向け",7,400],["long","長文（800文字目安）","LinkedIn・Wantedly・職務経歴書フル版向け",14,800]].map(([f,l,hint,rows,target]) => (
@@ -323,7 +323,7 @@ export default function CareerBuilderPage() {
         {/* STEP 2: スキルサマリ */}
         {step === 2 && (
           <div>
-            {[["consulting","コンサルティングスキル","顧客折衝・要件定義・提案・業務改善などの経験","・顧客折衝・要件定義の経験あり\n・提案書作成・プレゼン経験あり"],["management","マネジメントスキル","PM・PL経験、チーム規模、管理業務などを具体的に","・PLとして5名チームをマネジメント\n・工数管理・進捗報告を担当"],["it","ITスキル・テクニカルスキル","得意な開発フェーズ・業界・技術領域を記入してください","・全工程経験あり（要件定義〜運用保守）\n・金融・保険・自治体ドメインの知識"]].map(([f,l,hint,ph]) => (
+            {[["consulting","コンサルティングスキル","顧客折衝・要件定義・提案・業務改善などの経験"],["management","マネジメントスキル","PM・PL経験、チーム規模、管理業務などを具体的に"],["it","ITスキル・テクニカルスキル","開発フェーズ経験、業界知見、先端技術を記載"]].map(([f,l,hint]) => (
               <div style={s.card} key={f}>
                 <div style={s.sectionTitle}><div style={s.bar} />{l}</div>
                 <div style={s.desc}>{hint}</div>
@@ -371,7 +371,7 @@ export default function CareerBuilderPage() {
           </div>
         )}
 
-        {/* STEP 1: 職務経歴 */}
+        {/* STEP 4: 職務経歴 */}
         {step === 1 && (
           <div>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
@@ -738,43 +738,47 @@ export default function CareerBuilderPage() {
                 </table>
               </div>
 
-              {outputMode !== "agent" && data.projects.some(p => p.title) && (
+              {outputMode !== "skill" && data.projects.some(p => p.title) && (
                 <div style={{ marginBottom: 20 }}>
-                  <div style={{ fontWeight: 700, fontSize: 13, background: "#f8f7f4", padding: "7px 12px", borderLeft: "4px solid #e85d26", borderRadius: "0 6px 6px 0", marginBottom: 10 }}>職務経歴</div>
-                  {data.projects.filter(p => p.title).map((p, i) => (
-                    <div key={i} style={{ background: "#f9f8f6", border: "1px solid #ede9e3", borderRadius: 8, padding: 16, marginBottom: 12 }}>
-                      <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 8 }}>{p.title}</div>
-                      <div style={{ display: "flex", gap: 16, fontSize: 12, color: "#888", marginBottom: 8, flexWrap: "wrap" }}>
-                        {p.from && <span>📅 {p.from} 〜 {p.present ? "現在" : p.to}</span>}
-                        {p.position && <span>👤 {p.position}</span>}
-                        {p.scale && <span>👥 {p.scale}</span>}
+                  <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.12em", color: "#e85d26", display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>職務経歴<div style={{ flex: 1, height: 1, background: "#f0ede8" }} /></div>
+                  <div style={{ position: "relative", paddingLeft: 20 }}>
+                    <div style={{ position: "absolute", left: 6, top: 6, bottom: 0, width: 1, background: "#ece9e3" }} />
+                    {data.projects.filter(p => p.title).map((p, i) => (
+                      <div key={i} style={{ position: "relative", marginBottom: 16 }}>
+                        <div style={{ position: "absolute", left: -20, top: 5, width: 12, height: 12, borderRadius: "50%", background: "#fff", border: "2px solid #e85d26" }} />
+                        <div style={{ fontSize: 10, color: "#e85d26", fontWeight: 600, marginBottom: 2 }}>{p.from} 〜 {p.present ? "現在" : p.to}{p.position && <span style={{ marginLeft: 8, color: "#888", fontWeight: 400 }}>{p.position}</span>}</div>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: "#1a1a2e", marginBottom: 4 }}>{p.title}</div>
+                        {p.overview && <div style={{ fontSize: 11, color: "#666", lineHeight: 1.7, marginBottom: 4 }}>{p.overview}</div>}
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginBottom: 4 }}>
+                          {Array.isArray(p.phase) && p.phase.map((ph: string) => (<span key={ph} style={{ fontSize: 9, padding: "2px 7px", borderRadius: 3, background: "#f0ede8", color: "#666", border: "0.5px solid #e0ddd8" }}>{ph}</span>))}
+                          {p.scale && <span style={{ fontSize: 9, padding: "2px 7px", borderRadius: 3, background: "#f0ede8", color: "#666", border: "0.5px solid #e0ddd8" }}>{p.scale}</span>}
+                        </div>
+                        {p.env && <div style={{ fontSize: 10, color: "#777", background: "#f5f3ef", padding: "5px 10px", borderRadius: 4, marginTop: 2 }}>{p.env}</div>}
                       </div>
-                      {p.overview && <div style={{ fontSize: 12, marginBottom: 8, lineHeight: 1.8 }}>{p.overview}</div>}
-                      {p.phase.length > 0 && <div style={{ fontSize: 12, color: "#888", marginBottom: 8 }}>担当フェーズ：{p.phase.join("　/　")}</div>}
-                      {p.work && <div style={{ fontSize: 13, lineHeight: 1.9, whiteSpace: "pre-wrap" }}>{p.work}</div>}
-                      {p.env && <div style={{ fontSize: 12, color: "#777", background: "#f0ede8", padding: "8px 12px", borderRadius: 6, whiteSpace: "pre-wrap", marginTop: 8 }}>{p.env}</div>}
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
               )}
 
               {(outputMode === "full" || outputMode === "agent") && (
-                <div>
-                  <div style={{ fontWeight: 700, fontSize: 13, background: "#f8f7f4", padding: "7px 12px", borderLeft: "4px solid #e85d26", borderRadius: "0 6px 6px 0", marginBottom: 10 }}>稼働条件</div>
-                  <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+                <div style={{ marginBottom: 8 }}>
+                  <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.12em", color: "#e85d26", display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>稼働条件<div style={{ flex: 1, height: 1, background: "#f0ede8" }} /></div>
+                  <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
                     <tbody>
-                      {[["希望単価", (data.working.rateMin || data.working.rateMax) ? `${data.working.rateMin ? data.working.rateMin + "円" : ""}〜${data.working.rateMax ? data.working.rateMax + "円" : ""}（${data.working.rateUnit}）` : ""],["稼働日数",data.working.daysPerWeek],["稼働時間",data.working.hoursPerDay],["稼働曜日",data.working.weekdays.join("、")],["リモート",data.working.remote],["勤務エリア",data.working.location],["参画可能時期",data.working.available],["希望職種",data.working.jobType.join("　/　")]]
+                      {[["希望単価", (data.working.rateMin || data.working.rateMax) ? `${data.working.rateMin ? data.working.rateMin + "円" : ""}〜${data.working.rateMax ? data.working.rateMax + "円" : ""}（${data.working.rateUnit}）` : ""],["稼働日数",data.working.daysPerWeek],["稼働曜日",Array.isArray(data.working.weekdays) ? data.working.weekdays.join("・") : ""],["リモート",data.working.remote],["勤務エリア",data.working.location],["参画可能時期",data.working.available],["希望職種",Array.isArray(data.working.jobType) ? data.working.jobType.join(" / ") : ""]]
                         .filter(([,v]) => v)
                         .map(([l,v]) => (
-                          <tr key={l} style={{ borderBottom: "1px solid #f5f3ef" }}>
-                            <td style={{ padding: "7px 10px", fontWeight: 600, color: "#666", width: 110 }}>{l}</td>
-                            <td style={{ padding: "7px 10px" }}>{v}</td>
+                          <tr key={l} style={{ borderBottom: "0.5px solid #f5f3ef" }}>
+                            <td style={{ padding: "5px 8px", color: "#888", width: 90, fontSize: 11 }}>{l}</td>
+                            <td style={{ padding: "5px 8px", color: "#333" }}>{v}</td>
                           </tr>
                         ))}
                     </tbody>
                   </table>
                 </div>
               )}
+                </div>
+              </div>
             </div>
 
             {/* 出力ボタン群 */}
@@ -813,17 +817,5 @@ export default function CareerBuilderPage() {
     </div>
   );
 }
-
-
-
-
-
-
-
-
-
-
-
-
 
 
