@@ -243,7 +243,7 @@ export default function CareerBuilderPage() {
       `}</style>
 
       {/* Header */}
-      <div style={s.header}>
+      <div style={s.header} className="no-print">
         <div style={s.headerInner}>
           <div style={s.logoWrap}>
             <div style={s.logoIcon}>C</div>
@@ -654,7 +654,7 @@ export default function CareerBuilderPage() {
             </div>
 
             {/* プレビュー */}
-            <div style={{ background: "#fff", borderRadius: 12, overflow: "hidden", boxShadow: "0 2px 16px rgba(0,0,0,0.08)", marginBottom: 16 }}>
+            <div id="print-area" style={{ background: "#fff", borderRadius: 12, overflow: "hidden", boxShadow: "0 2px 16px rgba(0,0,0,0.08)", marginBottom: 16 }}>
               <div style={{ background: "#1a1a2e", padding: "28px 32px", display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: 16, flexWrap: "wrap" }}>
                 <div>
                   <div style={{ fontSize: 10, letterSpacing: "0.18em", color: "rgba(255,255,255,0.4)", marginBottom: 6 }}>{outputMode === "skill" ? "SKILL SHEET" : outputMode === "agent" ? "CAREER SUMMARY" : "CURRICULUM VITAE"}</div>
@@ -802,7 +802,7 @@ export default function CareerBuilderPage() {
       </div>
 
       {/* Footer Nav */}
-      <div style={s.footer}>
+      <div style={s.footer} className="no-print">
         <button style={{ ...s.btn, ...s.btnGhost, opacity: step === 0 ? 0.3 : 1, minWidth: 90 }} onClick={() => setStep(s => Math.max(0, s - 1))} disabled={step === 0}>← 前へ</button>
         <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
           {STEPS.map((_, i) => (
@@ -817,6 +817,8 @@ export default function CareerBuilderPage() {
     </div>
   );
 }
+
+
 
 
 
