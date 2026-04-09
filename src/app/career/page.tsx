@@ -363,7 +363,7 @@ export default function CareerBuilderPage() {
                   <div style={{ fontSize: 11, fontWeight: 700, color: "#e85d26", marginBottom: 6 }}>{group.label}</div>
                   <div style={s.tagsWrap}>
                     {group.tags.map(tag => {
-                      const on = data.summary.it.includes(tag);
+                      const on = typeof data.summary.it === "string" && data.summary.it.includes(tag);
                       return (
                         <div key={tag} style={{ ...s.tag, ...(on ? s.tagOn : s.tagOff) }}
                           onClick={() => {
@@ -475,7 +475,7 @@ export default function CareerBuilderPage() {
                   <label style={s.label}>担当フェーズ</label>
                   <div style={{ ...s.tagsWrap, marginTop: 6 }}>
                     {PHASES.map(ph => {
-                      const on = p.phase.includes(ph);
+                      const on = Array.isArray(p.phase) && p.phase.includes(ph);
                       return (
                         <div key={ph} style={{ ...s.tag, ...(on ? s.tagOn : s.tagOff) }} onClick={() => togglePhase(i, ph)}>
                           {on && <span style={{ fontSize: 10 }}>✓</span>}{ph}
@@ -576,7 +576,7 @@ export default function CareerBuilderPage() {
                 <label style={s.label}>稼働可能曜日</label>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 6 }}>
                   {["平日（月〜金）", "土曜日", "日曜日", "祝日"].map(day => {
-                    const on = data.working.weekdays.includes(day);
+                    const on = Array.isArray(data.working.weekdays) && data.working.weekdays.includes(day);
                     return (
                       <div key={day}
                         style={{ ...s.tag, ...(on ? s.tagOn : s.tagOff) }}
@@ -681,7 +681,7 @@ export default function CareerBuilderPage() {
                   </div>
                   <div style={s.tagsWrap}>
                     {group.types.map(t => {
-                      const on = data.working.jobType.includes(t);
+                      const on = Array.isArray(data.working.jobType) && data.working.jobType.includes(t);
                       return (
                         <div key={t} style={{ ...s.tag, ...(on ? s.tagOn : s.tagOff) }} onClick={() => toggleJobType(t)}>
                           {on && <span style={{ fontSize: 10 }}>✓</span>}{t}
