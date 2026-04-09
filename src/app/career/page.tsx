@@ -115,15 +115,19 @@ export default function CareerBuilderPage() {
         setData(prev => ({
           ...prev,
           ...parsed,
+          projects: (parsed.projects ?? prev.projects).map((p: any) => ({
+            ...p,
+            phase: Array.isArray(p.phase) ? p.phase : [],
+          })),
           working: {
             ...prev.working,
             ...(parsed.working ?? {}),
-            weekdays: parsed.working?.weekdays ?? [],
+            weekdays: Array.isArray(parsed.working?.weekdays) ? parsed.working.weekdays : [],
             daysPerWeek: parsed.working?.daysPerWeek ?? parsed.working?.days ?? "",
             hoursPerDay: parsed.working?.hoursPerDay ?? "",
             rateMin: parsed.working?.rateMin ?? "",
             rateMax: parsed.working?.rateMax ?? "",
-            jobType: parsed.working?.jobType ?? [],
+            jobType: Array.isArray(parsed.working?.jobType) ? parsed.working.jobType : [],
           }
         }));
       }
