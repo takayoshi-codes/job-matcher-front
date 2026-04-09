@@ -14,22 +14,22 @@ const JOB_SITES = [
     category: "副業・フリーランス向け",
     color: "#e85d26",
     sites: [
-      { name: "シューマツワーカー", desc: "週1〜3日の副業特化", url: "https://shuuumatu-worker.jp/", tag: "副業" },
-      { name: "クラウドワークス", desc: "国内最大のクラウドソーシング", url: "https://crowdworks.jp/", tag: "副業" },
-      { name: "ランサーズ", desc: "幅広い職種・スキル案件", url: "https://www.lancers.jp/", tag: "副業" },
-      { name: "Workship", desc: "週1〜副業・フリーランス", url: "https://goworkship.com/", tag: "副業" },
-      { name: "Offers", desc: "エンジニア副業・転職特化", url: "https://offers.jp/", tag: "副業" },
+      { name: "シューマツワーカー", desc: "週1〜3日の副業特化", url: "https://shuuumatu-worker.jp/", tag: "副業", searchUrl: (kw: string) => `https://shuuumatu-worker.jp/projects?keyword=${encodeURIComponent(kw)}` },
+      { name: "クラウドワークス", desc: "国内最大のクラウドソーシング", url: "https://crowdworks.jp/", tag: "副業", searchUrl: (kw: string) => `https://crowdworks.jp/public/jobs/search?keyword=${encodeURIComponent(kw)}` },
+      { name: "ランサーズ", desc: "幅広い職種・スキル案件", url: "https://www.lancers.jp/", tag: "副業", searchUrl: (kw: string) => `https://www.lancers.jp/work/search?keyword=${encodeURIComponent(kw)}` },
+      { name: "Workship", desc: "週1〜副業・フリーランス", url: "https://goworkship.com/", tag: "副業", searchUrl: (kw: string) => `https://goworkship.com/magazine/?s=${encodeURIComponent(kw)}` },
+      { name: "Offers", desc: "エンジニア副業・転職特化", url: "https://offers.jp/", tag: "副業", searchUrl: (kw: string) => `https://offers.jp/jobs?keyword=${encodeURIComponent(kw)}` },
     ],
   },
   {
     category: "フリーランスエージェント",
     color: "#7c3aed",
     sites: [
-      { name: "レバテックフリーランス", desc: "高単価・直請け案件多数", url: "https://freelance.levtech.jp/", tag: "エージェント" },
-      { name: "ギークスジョブ", desc: "リモート案件80%・福利厚生あり", url: "https://geechs-job.com/", tag: "エージェント" },
-      { name: "ITプロパートナーズ", desc: "週2〜3日の案件が豊富", url: "https://itpropartners.com/", tag: "エージェント" },
-      { name: "テックストック", desc: "上流・高単価案件特化", url: "https://tech-stock.com/", tag: "エージェント" },
-      { name: "フリーランススタート", desc: "複数エージェントを一括比較", url: "https://freelance-start.com/", tag: "比較" },
+      { name: "レバテックフリーランス", desc: "高単価・直請け案件多数", url: "https://freelance.levtech.jp/", tag: "エージェント", searchUrl: (kw: string) => `https://freelance.levtech.jp/project/search/?keyword=${encodeURIComponent(kw)}` },
+      { name: "ギークスジョブ", desc: "リモート案件80%・福利厚生あり", url: "https://geechs-job.com/", tag: "エージェント", searchUrl: (kw: string) => `https://geechs-job.com/search?keyword=${encodeURIComponent(kw)}` },
+      { name: "ITプロパートナーズ", desc: "週2〜3日の案件が豊富", url: "https://itpropartners.com/", tag: "エージェント", searchUrl: (kw: string) => `https://itpropartners.com/projects?search=${encodeURIComponent(kw)}` },
+      { name: "テックストック", desc: "上流・高単価案件特化", url: "https://tech-stock.com/", tag: "エージェント", searchUrl: (kw: string) => `https://tech-stock.com/projects?keyword=${encodeURIComponent(kw)}` },
+      { name: "フリーランススタート", desc: "複数エージェントを一括比較", url: "https://freelance-start.com/", tag: "比較", searchUrl: (kw: string) => `https://freelance-start.com/jobs?keyword=${encodeURIComponent(kw)}` },
     ],
   },
 ];
@@ -57,6 +57,71 @@ const s: Record<string, React.CSSProperties> = {
   uploaderArea: { border: "2px dashed #e0ddd8", borderRadius: 8, padding: "16px", textAlign: "center" as const, cursor: "pointer", background: "#f9f8f6", transition: "border-color 0.2s", marginBottom: 14 },
   loadedBanner: { background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 8, padding: "12px 16px", marginBottom: 16, display: "flex", alignItems: "center", justifyContent: "space-between" },
 };
+
+function SearchLinksPanel({ keywords }: { keywords: string[] }) {
+  if (!keywords || keywords.length === 0) return <JobSitesPanel />;
+  const allSites = JOB_SITES.flatMap(g => g.sites.map(s => ({ ...s, color: g.color })));
+  return (
+    <div style={{ ...s.card, height: "fit-content", position: "sticky", top: 80 }}>
+      <div style={s.cardTitle}><div style={s.cardTitleBar} />この求人で検索する</div>
+      <div style={{ fontSize: 11, color: "#aaa", marginBottom: 16, paddingLeft: 12 }}>
+        AIが生成したキーワードで各サイトを検索できます
+      </div>
+
+      {/* キーワードタグ */}
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 20 }}>
+        {keywords.map((kw, i) => (
+          <span key={i} style={{ padding: "4px 12px", borderRadius: 20, background: "#fff3ee", border: "1px solid #ffd0c0", fontSize: 12, fontWeight: 600, color: "#e85d26" }}>
+            🔍 {kw}
+          </span>
+        ))}
+      </div>
+
+      {/* 各サイトへの検索リンク */}
+      {JOB_SITES.map((group) => (
+        <div key={group.category} style={{ marginBottom: 20 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: group.color, marginBottom: 8, display: "flex", alignItems: "center", gap: 6 }}>
+            {group.category}
+            <div style={{ flex: 1, height: 1, background: "#f0ede8" }} />
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            {group.sites.map((site) => {
+              const keyword = keywords[0] ?? "";
+              return (
+                <a key={site.name} href={site.searchUrl(keyword)} target="_blank" rel="noopener noreferrer"
+                  style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "9px 12px", background: "#f9f8f6", borderRadius: 8, border: "1px solid #ede9e3", textDecoration: "none", transition: "all 0.15s", gap: 6 }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "#fff3ee"; (e.currentTarget as HTMLElement).style.borderColor = "#ffd0c0"; }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "#f9f8f6"; (e.currentTarget as HTMLElement).style.borderColor = "#ede9e3"; }}
+                >
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 12, fontWeight: 600, color: "#1a1a1a", marginBottom: 1 }}>{site.name}</div>
+                    <div style={{ fontSize: 10, color: "#888", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>「{keyword}」で検索</div>
+                  </div>
+                  <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 6px", borderRadius: 20, background: group.color + "18", color: group.color, flexShrink: 0 }}>検索 ↗</span>
+                </a>
+              );
+            })}
+          </div>
+        </div>
+      ))}
+
+      {/* キーワード別に切り替え */}
+      {keywords.length > 1 && (
+        <div style={{ marginTop: 8, padding: "10px 12px", background: "#f9f8f6", borderRadius: 8, fontSize: 11, color: "#888" }}>
+          💡 他のキーワードでも検索してみましょう
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 6 }}>
+            {keywords.slice(1).map((kw, i) => (
+              <a key={i} href={JOB_SITES[0].sites[0].searchUrl(kw)} target="_blank" rel="noopener noreferrer"
+                style={{ padding: "3px 10px", borderRadius: 20, background: "#fff", border: "1px solid #e0ddd8", fontSize: 11, color: "#555", textDecoration: "none" }}>
+                {kw} ↗
+              </a>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 function JobSitesPanel() {
   const allSiteNames = JOB_SITES.flatMap(g => g.sites.map(s => s.name));

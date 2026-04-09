@@ -20,4 +20,5 @@ export interface MatchResult {
   missing_skills: string[];
   advice: string;
   job_suggestions: string;
+  search_keywords: string[];
 }
