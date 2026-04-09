@@ -21,11 +21,14 @@ const TECH_OPTIONS = {
   cloud: ["AWS", "Azure", "GCP", "Vercel", "Railway", "Heroku"],
   ai: ["TensorFlow", "Keras", "scikit-learn", "PyTorch", "BERT", "GPT-2", "Word2Vec", "MeCab", "OpenCV", "Gemini API", "OpenAI API", "Claude API", "HuggingFace"],
   tools: ["Git", "GitHub", "GitHub Actions", "GitLab", "Docker", "Selenium", "Figma", "Redmine", "Backlog", "Slack API", "Gmail API", "Supabase"],
+  sns: ["Instagram運用", "X (Twitter)運用", "TikTok運用", "YouTube運用", "Facebook運用", "LinkedIn運用", "Canva", "Buffer", "Hootsuite", "Meta広告", "Google広告"],
+  video: ["Premiere Pro", "Final Cut Pro", "DaVinci Resolve", "After Effects", "CapCut", "iMovie", "OBS Studio", "Photoshop", "Illustrator", "Lightroom"],
 };
 
 const TECH_LABELS: Record<string, string> = {
   language: "言語", framework: "フレームワーク", db: "データベース",
   os: "OS", cloud: "クラウド", ai: "AI / ML", tools: "ツール",
+  sns: "SNS・マーケティング", video: "動画・デザイン",
 };
 
 const PHASES = ["要件定義", "基本設計", "詳細設計", "開発・実装", "単体テスト", "結合テスト", "システムテスト", "リリース・移行", "運用・保守"];
@@ -285,12 +288,24 @@ export default function CareerBuilderPage() {
             <div style={s.sectionTitle}><div style={s.bar} />基本情報</div>
             <div style={s.desc}>プロフィールの基本情報を入力してください</div>
             <div style={{ ...s.grid2, marginBottom: 14 }} className="grid2">
-              {[["name","氏名","山田 太郎"],["furigana","フリガナ","ヤマダ タロウ"],["age","年齢","30"],["gender","性別","男性"],["station","最寄駅","渋谷駅"],["line","路線","JR山手線"]].map(([f,l,p]) => (
+              {[["name","氏名","山田 太郎"],["furigana","フリガナ","ヤマダ タロウ"],["age","年齢","30"],["station","最寄駅","渋谷駅"],["line","路線","JR山手線"]].map(([f,l,p]) => (
                 <div key={f}>
                   <label style={s.label}>{l}</label>
                   <input style={s.inp} placeholder={p} value={(data.basic as any)[f]} onChange={e => update("basic", f, e.target.value)} />
                 </div>
-              ))}
+              ))
+              }
+              <div>
+                <label style={s.label}>性別</label>
+                <select style={s.inp} value={data.basic.gender} onChange={e => update("basic", "gender", e.target.value)}>
+                  <option value="">選択してください</option>
+                  <option value="男性">男性</option>
+                  <option value="女性">女性</option>
+                  <option value="その他">その他</option>
+                  <option value="答えたくない">答えたくない</option>
+                </select>
+              </div>
+              {}
             </div>
             <div style={{ marginBottom: 14 }}>
               <label style={s.label}>最終学歴</label>
@@ -323,13 +338,56 @@ export default function CareerBuilderPage() {
         {/* STEP 2: スキルサマリ */}
         {step === 2 && (
           <div>
-            {[["consulting","コンサルティングスキル","顧客折衝・要件定義・提案・業務改善などの経験"],["management","マネジメントスキル","PM・PL経験、チーム規模、管理業務などを具体的に"],["it","ITスキル・テクニカルスキル","開発フェーズ経験、業界知見、先端技術を記載"]].map(([f,l,hint]) => (
+            {[["consulting","コンサルティングスキル","顧客折衝・要件定義・提案・業務改善などの経験"],["management","マネジメントスキル","PM・PL経験、チーム規模、管理業務などを具体的に"]].map(([f,l,hint]) => (
               <div style={s.card} key={f}>
                 <div style={s.sectionTitle}><div style={s.bar} />{l}</div>
                 <div style={s.desc}>{hint}</div>
                 <textarea style={{ ...s.inp, minHeight: 160 }} placeholder={`・〇〇の経験\n・〇〇を担当`} value={(data.summary as any)[f]} onChange={e => update("summary", f, e.target.value)} />
               </div>
             ))}
+
+            {/* ITスキル：タグ選択＋自由入力 */}
+            <div style={s.card}>
+              <div style={s.sectionTitle}><div style={s.bar} />ITスキル・テクニカルスキル</div>
+              <div style={s.desc}>得意な技術領域・業界知見・開発フェーズ経験を選択＋自由記述</div>
+              {/* タグ選択 */}
+              {[
+                { label: "得意な開発フェーズ", tags: ["要件定義", "基本設計", "詳細設計", "開発・実装", "テスト", "リリース・移行", "運用・保守"] },
+                { label: "業界・ドメイン知識", tags: ["金融・保険", "製造業", "流通・小売", "医療・ヘルスケア", "不動産", "教育", "EC・通販", "SaaS・IT", "官公庁・公共"] },
+                { label: "得意な技術領域", tags: ["Webアプリ開発", "AI・機械学習", "データ分析", "業務自動化", "インフラ・クラウド", "モバイルアプリ", "組み込み・IoT", "セキュリティ"] },
+              ].map(group => (
+                <div key={group.label} style={{ marginBottom: 14 }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: "#e85d26", marginBottom: 6 }}>{group.label}</div>
+                  <div style={s.tagsWrap}>
+                    {group.tags.map(tag => {
+                      const on = data.summary.it.includes(tag);
+                      return (
+                        <div key={tag} style={{ ...s.tag, ...(on ? s.tagOn : s.tagOff) }}
+                          onClick={() => {
+                            const cur = data.summary.it;
+                            const next = on
+                              ? cur.replace(new RegExp(`・?${tag}`), "").replace(/^・/, "")
+                              : cur ? cur + "・" + tag : tag;
+                            update("summary", "it", next);
+                          }}>
+                          {on && <span style={{ fontSize: 10 }}>✓</span>}{tag}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+              {/* 自由入力 */}
+              <div style={{ marginTop: 8 }}>
+                <div style={{ fontSize: 11, color: "#888", marginBottom: 6 }}>追記・詳細（自由記述）</div>
+                <textarea style={{ ...s.inp, minHeight: 100 }}
+                  placeholder={"例：金融系基幹システムの開発経験5年。要件定義〜運用保守まで一貫して担当。
+AWS上でのマイクロサービス設計・構築が得意。"}
+                  value={data.summary.it}
+                  onChange={e => update("summary", "it", e.target.value)}
+                />
+              </div>
+            </div>
           </div>
         )}
 
