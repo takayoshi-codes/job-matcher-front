@@ -1065,10 +1065,10 @@ export default function CareerBuilderPage() {
                       </div>
                       <div style={{ display: "grid", gridTemplateColumns: "90px 1fr", fontSize: 12, rowGap: 6 }}>
                         {[["希望単価", (data.working.rateMin || data.working.rateMax) ? `${data.working.rateMin ? data.working.rateMin + "円" : ""}〜${data.working.rateMax ? data.working.rateMax + "円" : ""}（${data.working.rateUnit}）` : ""],["稼働日数", data.working.daysPerWeek],["稼働曜日", Array.isArray(data.working.weekdays) ? data.working.weekdays.join("・") : ""],["リモート", data.working.remote],["勤務エリア", data.working.location],["参画可能時期", data.working.available],["希望職種", Array.isArray(data.working.jobType) ? data.working.jobType.join("　/　") : ""]].filter(([,v]) => v).map(([l,v]) => (
-                          <>
-                            <div key={l + "_l"} style={{ color: "#888", fontSize: 11 }}>{l}</div>
-                            <div key={l + "_v"} style={{ color: "#333" }}>{v}</div>
-                          </>
+                          <div key={l as string} style={{ display: "contents" }}>
+                            <div style={{ color: "#888", fontSize: 11 }}>{l}</div>
+                            <div style={{ color: "#333" }}>{v}</div>
+                          </div>
                         ))}
                       </div>
                     </div>
