@@ -317,13 +317,12 @@ export default function CareerBuilderPage() {
             <div style={s.sectionTitle}><div style={s.bar} />基本情報</div>
             <div style={s.desc}>プロフィールの基本情報を入力してください</div>
             <div style={{ ...s.grid2, marginBottom: 14 }} className="grid2">
-              {[["name","氏名","山田 太郎"],["furigana","フリガナ","ヤマダ タロウ"],["age","年齢","30"],["station","最寄駅","渋谷駅"],["line","路線","JR山手線"]].map(([f,l,p]) => (
+              {[["name","氏名","山田 太郎"],["furigana","フリガナ","ヤマダ タロウ"],["age","年齢","30"]].map(([f,l,p]) => (
                 <div key={f}>
                   <label style={s.label}>{l}</label>
                   <input style={s.inp} placeholder={p} value={(data.basic as any)[f]} onChange={e => update("basic", f, e.target.value)} />
                 </div>
-              ))
-              }
+              ))}
               <div>
                 <label style={s.label}>性別</label>
                 <select style={s.inp} value={data.basic.gender} onChange={e => update("basic", "gender", e.target.value)}>
@@ -335,14 +334,80 @@ export default function CareerBuilderPage() {
                 </select>
               </div>
             </div>
+
+            {/* 最寄駅・路線 */}
+            <div style={{ ...s.grid2, marginBottom: 14 }} className="grid2">
+              <div>
+                <label style={s.label}>路線</label>
+                <select style={s.inp} value={data.basic.line} onChange={e => update("basic", "line", e.target.value)}>
+                  <option value="">選択または直接入力</option>
+                  <optgroup label="JR">
+                    <option>JR山手線</option><option>JR中央線</option><option>JR総武線</option><option>JR京浜東北線</option><option>JR東海道線</option><option>JR横須賀線</option><option>JR埼京線</option>
+                  </optgroup>
+                  <optgroup label="東京メトロ">
+                    <option>東京メトロ銀座線</option><option>東京メトロ丸ノ内線</option><option>東京メトロ日比谷線</option><option>東京メトロ東西線</option><option>東京メトロ千代田線</option><option>東京メトロ有楽町線</option><option>東京メトロ半蔵門線</option><option>東京メトロ南北線</option><option>東京メトロ副都心線</option>
+                  </optgroup>
+                  <optgroup label="都営">
+                    <option>都営浅草線</option><option>都営三田線</option><option>都営新宿線</option><option>都営大江戸線</option>
+                  </optgroup>
+                  <optgroup label="私鉄">
+                    <option>東急東横線</option><option>東急田園都市線</option><option>小田急小田原線</option><option>京王線</option><option>西武新宿線</option><option>西武池袋線</option><option>東武東上線</option><option>東武伊勢崎線</option><option>京急線</option><option>相鉄線</option>
+                  </optgroup>
+                  <optgroup label="大阪・名古屋・その他">
+                    <option>大阪メトロ御堂筋線</option><option>阪急神戸線</option><option>阪急京都線</option><option>名古屋市営地下鉄東山線</option><option>福岡市地下鉄空港線</option>
+                  </optgroup>
+                </select>
+                <input style={{ ...s.inp, marginTop: 6 }} placeholder="路線名を直接入力" value={data.basic.line} onChange={e => update("basic", "line", e.target.value)} />
+              </div>
+              <div>
+                <label style={s.label}>最寄駅</label>
+                <input style={s.inp} placeholder="例：渋谷駅" value={data.basic.station} onChange={e => update("basic", "station", e.target.value)} />
+              </div>
+            </div>
+
+            {/* 最終学歴 */}
             <div style={{ marginBottom: 14 }}>
               <label style={s.label}>最終学歴</label>
-              <input style={s.inp} placeholder="例：〇〇大学 情報工学部 卒業（2018年3月）" value={data.basic.education} onChange={e => update("basic", "education", e.target.value)} />
+              <div style={{ display: "flex", gap: 8, marginBottom: 6 }}>
+                <select style={{ ...s.inp, flex: "0 0 160px" }}
+                  onChange={e => {
+                    if (e.target.value) update("basic", "education", e.target.value);
+                    e.target.value = "";
+                  }}>
+                  <option value="">学歴を選択…</option>
+                  <option value="大学院（修士）卒業">大学院（修士）卒業</option>
+                  <option value="大学院（博士）卒業">大学院（博士）卒業</option>
+                  <option value="大学卒業">大学卒業</option>
+                  <option value="短期大学卒業">短期大学卒業</option>
+                  <option value="専門学校卒業">専門学校卒業</option>
+                  <option value="高校卒業">高校卒業</option>
+                  <option value="その他">その他</option>
+                </select>
+                <input style={{ ...s.inp, flex: 1 }} placeholder="例：〇〇大学 情報工学部 卒業（2018年3月）" value={data.basic.education} onChange={e => update("basic", "education", e.target.value)} />
+              </div>
             </div>
+
+            {/* 保有資格 */}
             <div>
               <label style={s.label}>保有資格・認定</label>
-              <div style={s.hint}>複数ある場合は読点（、）で区切って入力</div>
-              <textarea style={{ ...s.inp, minHeight: 60 }} placeholder="例：応用情報技術者、FP2級、AWS SAA、G検定" value={data.basic.certifications} onChange={e => update("basic", "certifications", e.target.value)} />
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 8 }}>
+                {["基本情報技術者", "応用情報技術者", "ITストラテジスト", "プロジェクトマネージャ", "AWS SAA", "AWS SAP", "G検定", "E資格", "データサイエンティスト検定", "FP2級", "FP1級", "簿記2級", "PMP", "情報セキュリティマネジメント"].map(cert => {
+                  const on = data.basic.certifications.includes(cert);
+                  return (
+                    <div key={cert} style={{ ...s.tag, ...(on ? s.tagOn : s.tagOff) }}
+                      onClick={() => {
+                        const cur = data.basic.certifications;
+                        const next = on
+                          ? cur.split("、").filter((c: string) => c !== cert).join("、")
+                          : cur ? cur + "、" + cert : cert;
+                        update("basic", "certifications", next);
+                      }}>
+                      {on && <span style={{ fontSize: 10 }}>✓</span>}{cert}
+                    </div>
+                  );
+                })}
+              </div>
+              <textarea style={{ ...s.inp, minHeight: 50 }} placeholder="上記以外の資格を入力（例：TOEIC 750点、PMP、Oracle認定Javaプログラマ）" value={data.basic.certifications} onChange={e => update("basic", "certifications", e.target.value)} />
             </div>
           </div>
         )}
@@ -354,7 +419,15 @@ export default function CareerBuilderPage() {
               <div style={s.card} key={f as string}>
                 <div style={s.sectionTitle}><div style={s.bar} />{l as string}</div>
                 <div style={s.desc}>{hint as string}</div>
-                <textarea style={{ ...s.inp, minHeight: Number(rows) * 24 }} placeholder={`${l}の自己PRを入力…`} value={(data.pr as any)[f as string]} onChange={e => update("pr", f as string, e.target.value)} />
+                <textarea style={{ ...s.inp, minHeight: Number(rows) * 24 }}
+                  placeholder={
+                    f === "short"
+                      ? "例：SIerで10年以上、金融・保険領域のシステム開発に従事。Python・Next.jsを活用したAI系Webアプリ開発が得意。副業では週2〜3日、フルリモートで対応可能です。"
+                      : f === "medium"
+                      ? "例：SIer勤務10年以上。金融・保険領域を中心に、要件定義から運用保守まで一貫して担当してきました。\nPM・PL経験があり、チームマネジメントも対応可能です。\n近年はPython・Next.js・Gemini APIを活用したAI系Webアプリ開発にも注力しており、業務効率化ツールや診断アプリを複数リリースしています。副業では週2〜3日・フルリモートで参画可能です。"
+                      : "例：SIer勤務10年以上、金融・保険領域のシステム開発を中心にPG・SE・PMとして幅広く経験を積んできました。\n\n【強み】\n・要件定義〜運用保守まで一気通貫でのプロジェクト推進\n・Python / Next.js / Django / FastAPIを活用したフルスタック開発\n・Gemini API / OpenAI APIを活用した生成AIアプリの実装経験\n・FP資格を活かした金融・保険ドメインへの深い理解\n\n【副業について】\n週2〜3日・フルリモートでの参画が可能です。得意領域はAI活用、Webアプリ開発、業務自動化です。"
+                  }
+                  value={(data.pr as any)[f as string]} onChange={e => update("pr", f as string, e.target.value)} />
                 <div style={{ fontSize: 11, textAlign: "right", marginTop: 4, color: (data.pr as any)[f as string].length > Number(target) * 1.2 ? "#e85d26" : "#bbb" }}>
                   {(data.pr as any)[f as string].length} 文字（目安 {target}文字）
                 </div>
