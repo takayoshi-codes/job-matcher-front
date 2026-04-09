@@ -425,14 +425,41 @@ export default function CareerBuilderPage() {
 
               {/* 希望単価 */}
               <div style={{ marginBottom: 16 }}>
-                <label style={s.label}>希望単価</label>
-                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                  <input style={{ ...s.inp, flex: 1 }} placeholder="下限（例：500,000）" value={data.working.rateMin} onChange={e => update("working", "rateMin", e.target.value)} />
-                  <span style={{ color: "#888", fontSize: 13, flexShrink: 0 }}>〜</span>
-                  <input style={{ ...s.inp, flex: 1 }} placeholder="上限（例：800,000）" value={data.working.rateMax} onChange={e => update("working", "rateMax", e.target.value)} />
-                  <select style={{ ...s.inp, width: 74, padding: "10px 8px", flexShrink: 0 }} value={data.working.rateUnit} onChange={e => update("working", "rateUnit", e.target.value)}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+                  <label style={{ ...s.label, marginBottom: 0 }}>希望単価</label>
+                  <select style={{ ...s.inp, width: 80, padding: "6px 8px", fontSize: 12 }} value={data.working.rateUnit} onChange={e => update("working", "rateUnit", e.target.value)}>
                     <option>月額</option><option>時給</option><option>日額</option>
                   </select>
+                </div>
+                {/* 下限 */}
+                <div style={{ marginBottom: 10 }}>
+                  <div style={{ fontSize: 11, color: "#888", marginBottom: 4 }}>下限</div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <button type="button" style={{ width: 36, height: 36, borderRadius: 8, border: "1.5px solid #e0ddd8", background: "#fff", fontSize: 18, cursor: "pointer", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}
+                      onClick={() => { const v = parseInt(data.working.rateMin || "0") - 100000; update("working", "rateMin", Math.max(0, v).toString()); }}>−</button>
+                    <div style={{ flex: 1, position: "relative" }}>
+                      <input style={{ ...s.inp, textAlign: "right", paddingRight: 28 }} placeholder="0" value={data.working.rateMin} onChange={e => update("working", "rateMin", e.target.value.replace(/[^0-9]/g, ""))} />
+                      <span style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", fontSize: 12, color: "#888" }}>円</span>
+                    </div>
+                    <button type="button" style={{ width: 36, height: 36, borderRadius: 8, border: "1.5px solid #e85d26", background: "#fff3ee", color: "#e85d26", fontSize: 18, cursor: "pointer", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}
+                      onClick={() => { const v = parseInt(data.working.rateMin || "0") + 100000; update("working", "rateMin", v.toString()); }}>＋</button>
+                    {data.working.rateMin && <span style={{ fontSize: 13, fontWeight: 700, color: "#1a1a1a", flexShrink: 0 }}>{parseInt(data.working.rateMin).toLocaleString()}円</span>}
+                  </div>
+                </div>
+                {/* 上限 */}
+                <div>
+                  <div style={{ fontSize: 11, color: "#888", marginBottom: 4 }}>上限</div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <button type="button" style={{ width: 36, height: 36, borderRadius: 8, border: "1.5px solid #e0ddd8", background: "#fff", fontSize: 18, cursor: "pointer", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}
+                      onClick={() => { const v = parseInt(data.working.rateMax || "0") - 100000; update("working", "rateMax", Math.max(0, v).toString()); }}>−</button>
+                    <div style={{ flex: 1, position: "relative" }}>
+                      <input style={{ ...s.inp, textAlign: "right", paddingRight: 28 }} placeholder="上限なし" value={data.working.rateMax} onChange={e => update("working", "rateMax", e.target.value.replace(/[^0-9]/g, ""))} />
+                      <span style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", fontSize: 12, color: "#888" }}>円</span>
+                    </div>
+                    <button type="button" style={{ width: 36, height: 36, borderRadius: 8, border: "1.5px solid #e85d26", background: "#fff3ee", color: "#e85d26", fontSize: 18, cursor: "pointer", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}
+                      onClick={() => { const v = parseInt(data.working.rateMax || "0") + 100000; update("working", "rateMax", v.toString()); }}>＋</button>
+                    {data.working.rateMax && <span style={{ fontSize: 13, fontWeight: 700, color: "#1a1a1a", flexShrink: 0 }}>{parseInt(data.working.rateMax).toLocaleString()}円</span>}
+                  </div>
                 </div>
               </div>
 
@@ -496,7 +523,64 @@ export default function CareerBuilderPage() {
                 </div>
                 <div>
                   <label style={s.label}>勤務可能エリア</label>
-                  <input style={s.inp} placeholder="例：東京・神奈川・フルリモート" value={data.working.location} onChange={e => update("working", "location", e.target.value)} />
+                  <div style={{ marginBottom: 8 }}>
+                    <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", fontSize: 13, fontWeight: 600, color: "#e85d26", marginBottom: 8 }}>
+                      <input type="checkbox"
+                        checked={data.working.location.includes("フルリモート")}
+                        onChange={e => {
+                          const cur = data.working.location.replace("フルリモート・", "").replace("・フルリモート", "").replace("フルリモート", "").trim();
+                          update("working", "location", e.target.checked ? (cur ? cur + "・フルリモート" : "フルリモート") : cur);
+                        }}
+                        style={{ accentColor: "#e85d26", width: 16, height: 16 }}
+                      />
+                      🏠 フルリモート希望
+                    </label>
+                    <select style={{ ...s.inp, marginBottom: 6 }}
+                      onChange={e => {
+                        const v = e.target.value;
+                        if (!v) return;
+                        const cur = data.working.location;
+                        if (!cur.includes(v)) update("working", "location", cur ? cur + "・" + v : v);
+                        e.target.value = "";
+                      }}
+                    >
+                      <option value="">エリア・都道府県を追加…</option>
+                      <optgroup label="北海道・東北">
+                        <option>北海道</option><option>青森県</option><option>岩手県</option><option>宮城県</option><option>秋田県</option><option>山形県</option><option>福島県</option>
+                      </optgroup>
+                      <optgroup label="関東">
+                        <option>東京都</option><option>神奈川県</option><option>埼玉県</option><option>千葉県</option><option>茨城県</option><option>栃木県</option><option>群馬県</option>
+                      </optgroup>
+                      <optgroup label="中部">
+                        <option>愛知県</option><option>静岡県</option><option>新潟県</option><option>長野県</option><option>山梨県</option><option>岐阜県</option><option>富山県</option><option>石川県</option><option>福井県</option>
+                      </optgroup>
+                      <optgroup label="近畿">
+                        <option>大阪府</option><option>兵庫県</option><option>京都府</option><option>奈良県</option><option>滋賀県</option><option>和歌山県</option><option>三重県</option>
+                      </optgroup>
+                      <optgroup label="中国">
+                        <option>広島県</option><option>岡山県</option><option>山口県</option><option>鳥取県</option><option>島根県</option>
+                      </optgroup>
+                      <optgroup label="四国">
+                        <option>愛媛県</option><option>香川県</option><option>高知県</option><option>徳島県</option>
+                      </optgroup>
+                      <optgroup label="九州・沖縄">
+                        <option>福岡県</option><option>佐賀県</option><option>長崎県</option><option>熊本県</option><option>大分県</option><option>宮崎県</option><option>鹿児島県</option><option>沖縄県</option>
+                      </optgroup>
+                    </select>
+                    {data.working.location && (
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 4 }}>
+                        {data.working.location.split("・").filter(Boolean).map((loc: string) => (
+                          <span key={loc} style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "4px 10px", borderRadius: 20, background: "#fff3ee", border: "1px solid #ffd0c0", fontSize: 12, color: "#e85d26", fontWeight: 600 }}>
+                            {loc}
+                            <span style={{ cursor: "pointer", fontSize: 11 }} onClick={() => {
+                              const arr = data.working.location.split("・").filter((l: string) => l !== loc);
+                              update("working", "location", arr.join("・"));
+                            }}>×</span>
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
                 <div>
                   <label style={s.label}>参画可能時期</label>
