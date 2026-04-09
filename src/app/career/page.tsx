@@ -84,7 +84,24 @@ export default function CareerBuilderPage() {
   useEffect(() => {
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) setData(JSON.parse(stored));
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        // 古いデータとinitialDataをマージして新フィールドのundefinedを防ぐ
+        setData(prev => ({
+          ...prev,
+          ...parsed,
+          working: {
+            ...prev.working,
+            ...(parsed.working ?? {}),
+            weekdays: parsed.working?.weekdays ?? [],
+            daysPerWeek: parsed.working?.daysPerWeek ?? parsed.working?.days ?? "",
+            hoursPerDay: parsed.working?.hoursPerDay ?? "",
+            rateMin: parsed.working?.rateMin ?? "",
+            rateMax: parsed.working?.rateMax ?? "",
+            jobType: parsed.working?.jobType ?? [],
+          }
+        }));
+      }
     } catch { /* 無視 */ }
   }, []);
 
