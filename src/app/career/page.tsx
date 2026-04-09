@@ -5,10 +5,10 @@ import { useRouter } from "next/navigation";
 
 const STEPS = [
   { label: "基本情報", icon: "👤" },
-  { label: "自己PR", icon: "✍️" },
+  { label: "職務経歴", icon: "💼" },
   { label: "スキルサマリ", icon: "📋" },
   { label: "技術スタック", icon: "⚙️" },
-  { label: "職務経歴", icon: "💼" },
+  { label: "自己PR", icon: "✍️" },
   { label: "稼働条件", icon: "📅" },
   { label: "プレビュー・出力", icon: "📄" },
 ];
@@ -216,7 +216,7 @@ export default function CareerBuilderPage() {
       ["稼働条件", "参画可能時期", data.working.available],
       ["稼働条件", "希望職種", data.working.jobType.join("、")],
     ];
-    const csv = rows.map(r => r.map(c => `"${String(c ?? "").replace(/"/g, '""')}"`).join(",")).join("\n");
+    const csv = rows.map(r => r.map(c => { const v = String(c ?? '').replace(/"/g, '""'); return '"' + v + '"'; }).join(",")).join("\n");
     const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
@@ -305,7 +305,7 @@ export default function CareerBuilderPage() {
         )}
 
         {/* STEP 4: 自己PR */}
-        {step === 1 && (
+        {step === 4 && (
           <div>
             {[["short","短文（100文字目安）","クラウドワークス・ランサーズ向け",3,100],["medium","中文（400文字目安）","レバテック・ビズリーチ向け",7,400],["long","長文（800文字目安）","LinkedIn・Wantedly・職務経歴書フル版向け",14,800]].map(([f,l,hint,rows,target]) => (
               <div style={s.card} key={f as string}>
@@ -323,11 +323,19 @@ export default function CareerBuilderPage() {
         {/* STEP 2: スキルサマリ */}
         {step === 2 && (
           <div>
-            {[["consulting","コンサルティングスキル","顧客折衝・要件定義・提案・業務改善などの経験"],["management","マネジメントスキル","PM・PL経験、チーム規模、管理業務などを具体的に"],["it","ITスキル・テクニカルスキル","開発フェーズ経験、業界知見、先端技術を記載"]].map(([f,l,hint]) => (
+            {[["consulting","コンサルティングスキル","顧客折衝・要件定義・提案・業務改善などの経験","・顧客折衝・要件定義の経験あり\n・提案書作成・プレゼン経験あり"],["management","マネジメントスキル","PM・PL経験、チーム規模、管理業務などを具体的に","・PLとして5名チームをマネジメント\n・工数管理・進捗報告を担当"],["it","ITスキル・テクニカルスキル","得意な開発フェーズ・業界・技術領域を記入してください","・全工程経験あり（要件定義〜運用保守）\n・金融・保険・自治体ドメインの知識"]].map(([f,l,hint,ph]) => (
               <div style={s.card} key={f}>
                 <div style={s.sectionTitle}><div style={s.bar} />{l}</div>
                 <div style={s.desc}>{hint}</div>
-                <textarea style={{ ...s.inp, minHeight: 160 }} placeholder={`・〇〇の経験\n・〇〇を担当`} value={(data.summary as any)[f]} onChange={e => update("summary", f, e.target.value)} />
+                <div style={{ marginBottom: 8 }}>
+                  <span style={{ ...s.tag, ...((data.summary as any)[f] === "経験なし・該当なし" ? s.tagOn : s.tagOff) }}
+                    onClick={() => update("summary", f, (data.summary as any)[f] === "経験なし・該当なし" ? "" : "経験なし・該当なし")}>
+                    {(data.summary as any)[f] === "経験なし・該当なし" && <span style={{ fontSize: 10 }}>✓</span>}経験なし・該当なし
+                  </span>
+                </div>
+                {(data.summary as any)[f] !== "経験なし・該当なし" && (
+                  <textarea style={{ ...s.inp, minHeight: 140 }} placeholder={ph as string} value={(data.summary as any)[f]} onChange={e => update("summary", f, e.target.value)} />
+                )}
               </div>
             ))}
           </div>
@@ -646,13 +654,47 @@ export default function CareerBuilderPage() {
             </div>
 
             {/* プレビュー */}
-            <div style={{ background: "#fff", borderRadius: 12, padding: 36, boxShadow: "0 2px 12px rgba(0,0,0,0.08)", marginBottom: 16 }}>
-              <div style={{ fontSize: 22, fontWeight: 700, textAlign: "center", marginBottom: 6 }}>{outputMode === "skill" ? "スキルシート" : "職務経歴書"}</div>
-              <div style={{ fontSize: 17, fontWeight: 600, textAlign: "center", marginBottom: 4 }}>{data.basic.name || "（氏名未入力）"}</div>
-              <div style={{ fontSize: 12, color: "#888", textAlign: "center", marginBottom: 24 }}>
-                {[data.basic.age && `${data.basic.age}歳`, data.basic.gender, data.basic.station && `最寄：${data.basic.station}`].filter(Boolean).join("　｜　")}
+            <div style={{ background: "#fff", borderRadius: 12, overflow: "hidden", boxShadow: "0 2px 16px rgba(0,0,0,0.08)", marginBottom: 16 }}>
+              <div style={{ background: "#1a1a2e", padding: "28px 32px", display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: 16, flexWrap: "wrap" }}>
+                <div>
+                  <div style={{ fontSize: 10, letterSpacing: "0.18em", color: "rgba(255,255,255,0.4)", marginBottom: 6 }}>{outputMode === "skill" ? "SKILL SHEET" : outputMode === "agent" ? "CAREER SUMMARY" : "CURRICULUM VITAE"}</div>
+                  <div style={{ fontSize: 26, fontWeight: 500, color: "#fff", marginBottom: 3 }}>{data.basic.name || "（氏名未入力）"}</div>
+                  <div style={{ fontSize: 11, color: "rgba(255,255,255,0.4)" }}>{[data.basic.age && `${data.basic.age}歳`, data.basic.gender, data.basic.station && `${data.basic.station}（${data.basic.line}）`].filter(Boolean).join("　｜　")}</div>
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 5 }}>
+                  {data.working.jobType.slice(0, 3).map((jt: string) => (<span key={jt} style={{ fontSize: 10, padding: "3px 10px", borderRadius: 20, border: "0.5px solid rgba(255,255,255,0.25)", color: "rgba(255,255,255,0.65)" }}>{jt}</span>))}
+                </div>
               </div>
-              <hr style={{ border: "none", borderTop: "2px solid #e85d26", marginBottom: 20 }} />
+              <div style={{ height: 4, background: "linear-gradient(90deg, #e85d26 0%, #f59e0b 100%)" }} />
+              <div style={{ display: "flex" }}>
+                <div style={{ width: 190, flexShrink: 0, background: "#f9f8f6", padding: "24px 16px", borderRight: "0.5px solid #ece9e3" }}>
+                  <div style={{ marginBottom: 20 }}>
+                    <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.14em", color: "#e85d26", marginBottom: 8 }}>基本情報</div>
+                    {data.basic.education && <div style={{ fontSize: 10, color: "#555", lineHeight: 1.7, marginBottom: 2 }}>{data.basic.education}</div>}
+                    {(data.working.rateMin || data.working.rateMax) && <div style={{ fontSize: 10, color: "#555", marginBottom: 2 }}>単価：{data.working.rateMin}〜{data.working.rateMax}円</div>}
+                    {data.working.daysPerWeek && <div style={{ fontSize: 10, color: "#555", marginBottom: 2 }}>稼働：{data.working.daysPerWeek}</div>}
+                    {data.working.remote && <div style={{ fontSize: 10, color: "#555" }}>{data.working.remote}</div>}
+                  </div>
+                  {(data.tech.language.length > 0 || data.tech.framework.length > 0) && (
+                    <div style={{ marginBottom: 20 }}>
+                      <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.14em", color: "#e85d26", marginBottom: 8 }}>技術スタック</div>
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: 3 }}>
+                        {[...data.tech.language, ...data.tech.framework, ...data.tech.db, ...data.tech.cloud].filter(Boolean).map((sk: string) => (
+                          <span key={sk} style={{ fontSize: 9, padding: "2px 6px", borderRadius: 4, background: "#fff3ee", border: "0.5px solid #ffd0c0", color: "#c0440e" }}>{sk}</span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {data.basic.certifications && (
+                    <div>
+                      <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.14em", color: "#e85d26", marginBottom: 8 }}>資格</div>
+                      {data.basic.certifications.split(/[、,\n]/).filter(Boolean).map((c: string) => (
+                        <div key={c} style={{ fontSize: 10, color: "#555", padding: "3px 0", borderBottom: "0.5px solid #f0ede8" }}>{c.trim()}</div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <div style={{ flex: 1, padding: "24px 24px", minWidth: 0 }}>
 
               {data.basic.certifications && (
                 <div style={{ marginBottom: 20 }}>
