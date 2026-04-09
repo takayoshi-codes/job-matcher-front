@@ -229,7 +229,7 @@ export default function CareerBuilderPage() {
     router.push("/");
   };
 
-  const prText = outputMode === "agent" ? data.pr.medium : data.pr.long;
+  const prText = data.pr.short;
 
   return (
     <div style={s.wrap}>
@@ -778,7 +778,7 @@ export default function CareerBuilderPage() {
                   <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.12em", color: "#e85d26", display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>職務経歴<div style={{ flex: 1, height: 1, background: "#f0ede8" }} /></div>
                   <div style={{ position: "relative", paddingLeft: 20 }}>
                     <div style={{ position: "absolute", left: 6, top: 6, bottom: 0, width: 1, background: "#ece9e3" }} />
-                    {data.projects.filter(p => p.title).map((p, i) => (
+                    {data.projects.filter(p => p.title).slice().reverse().map((p, i) => (
                       <div key={i} style={{ position: "relative", marginBottom: 16 }}>
                         <div style={{ position: "absolute", left: -20, top: 5, width: 12, height: 12, borderRadius: "50%", background: "#fff", border: "2px solid #e85d26" }} />
                         <div style={{ fontSize: 10, color: "#e85d26", fontWeight: 600, marginBottom: 2 }}>{p.from} 〜 {p.present ? "現在" : p.to}{p.position && <span style={{ marginLeft: 8, color: "#888", fontWeight: 400 }}>{p.position}</span>}</div>
@@ -852,6 +852,7 @@ export default function CareerBuilderPage() {
     </div>
   );
 }
+
 
 
 
