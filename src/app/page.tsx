@@ -334,6 +334,14 @@ export default function Home() {
               <div style={s.advice}>{result.advice}</div>
             </div>
 
+            {result.job_suggestions && (
+            <div style={{ ...s.card, marginBottom: 16 }}>
+              <div style={s.cardTitle}><div style={s.cardTitleBar} />応募可能な求人タイプ・おすすめプラットフォーム</div>
+              <div style={s.cardDesc}>あなたの経験・スキルから導き出した応募戦略です</div>
+              <div style={s.advice}>{result.job_suggestions}</div>
+            </div>
+            )}
+
             <div style={{ display: "flex", gap: 10, justifyContent: "center" }}>
               <button style={{ ...s.btn, ...s.btnPrimary }} onClick={() => { setStep("input"); setResult(null); }}>別の求人で診断</button>
               <button style={{ ...s.btn, ...s.btnGhost }} onClick={() => router.push("/career")}>✍️ Career Builderに戻る</button>

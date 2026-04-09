@@ -19,4 +19,5 @@ export interface MatchResult {
   score_w2v: number | null;
   missing_skills: string[];
   advice: string;
+  job_suggestions: string;
 }
