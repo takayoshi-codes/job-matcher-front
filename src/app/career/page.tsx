@@ -71,6 +71,7 @@ const STORAGE_KEY = "career_builder_data";
 
 const s: Record<string, React.CSSProperties> = {
   wrap: { minHeight: "100vh", background: "#f5f5f0", fontFamily: "'Noto Sans JP', sans-serif" },
+  errMsg: { fontSize: 11, color: "#dc2626", marginTop: 4, fontWeight: 600 },
   header: { background: "#fff", borderBottom: "1px solid #ece9e3", boxShadow: "0 1px 4px rgba(0,0,0,0.05)", position: "sticky", top: 0, zIndex: 100 },
   headerInner: { maxWidth: 860, margin: "0 auto", padding: "12px 20px", display: "flex", alignItems: "center", justifyContent: "space-between" },
   logoWrap: { display: "flex", alignItems: "center", gap: 10 },
@@ -93,6 +94,7 @@ const s: Record<string, React.CSSProperties> = {
   btnGhost: { background: "#fff", color: "#555", border: "1.5px solid #e0ddd8" },
   btnMatch: { background: "#1a1a1a", color: "#fff" },
   footer: { position: "fixed" as const, bottom: 0, left: 0, right: 0, background: "#fff", borderTop: "1px solid #ece9e3", padding: "14px 24px", display: "flex", justifyContent: "space-between", alignItems: "center", boxShadow: "0 -2px 10px rgba(0,0,0,0.06)" },
+  footerWrap: { position: "fixed" as const, bottom: 0, left: 0, right: 0 },
   projectCard: { background: "#fff", border: "1.5px solid #f0ede8", borderRadius: 12, padding: 20, marginBottom: 12 },
   projectNum: { fontSize: 11, fontWeight: 700, color: "#e85d26", background: "#fff3ee", padding: "3px 10px", borderRadius: 20 },
   savedBadge: { fontSize: 12, color: "#16a34a", fontWeight: 600, background: "#f0fdf4", padding: "4px 12px", borderRadius: 20, border: "1px solid #bbf7d0" },
@@ -104,6 +106,46 @@ export default function CareerBuilderPage() {
   const [data, setData] = useState(initialData);
   const [saved, setSaved] = useState(false);
   const [outputMode, setOutputMode] = useState("full");
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  // バリデーション関数
+  const validate = (targetStep: number): boolean => {
+    const errs: Record<string, string> = {};
+    if (targetStep === 0) {
+      if (!data.basic.name.trim()) errs.name = "氏名は必須です";
+      if (!data.basic.furigana.trim()) errs.furigana = "フリガナは必須です";
+      else if (!/^[ァ-ヶー\s]+$/.test(data.basic.furigana.trim())) errs.furigana = "フリガナはカタカナで入力してください";
+      if (data.basic.age && (isNaN(Number(data.basic.age)) || Number(data.basic.age) < 15 || Number(data.basic.age) > 80)) errs.age = "年齢は15〜80の数字で入力してください";
+    }
+    if (targetStep === 1) {
+      if (!data.pr.short.trim()) errs.pr_short = "短文の自己PRは必須です";
+      else if (data.pr.short.length > 200) errs.pr_short = "短文は200文字以内で入力してください";
+    }
+    if (targetStep === 2) {
+      if (!data.summary.it.trim() && !data.summary.consulting.trim() && !data.summary.management.trim())
+        errs.summary = "スキルサマリは少なくとも1つ入力してください";
+    }
+    if (targetStep === 3) {
+      const allTech = Object.values(data.tech).flat();
+      if (allTech.filter(v => typeof v === "string" && v).length === 0)
+        errs.tech = "技術スタックを少なくとも1つ選択してください";
+    }
+    if (targetStep === 4) {
+      if (data.projects.length === 0 || !data.projects[0].title.trim())
+        errs.projects = "職務経歴を少なくとも1件入力してください";
+    }
+    if (targetStep === 5) {
+      if (!data.working.rateMin && !data.working.rateMax) errs.rate = "希望単価を入力してください";
+      if (data.working.rateMin && data.working.rateMax && Number(data.working.rateMin) > Number(data.working.rateMax))
+        errs.rate = "下限単価は上限単価以下にしてください";
+    }
+    setErrors(errs);
+    return Object.keys(errs).length === 0;
+  };
+
+  const goNext = () => {
+    if (validate(step)) setStep(s => s + 1);
+  };
 
   // 起動時にlocalStorageから復元（完全なディープマージ）
   useEffect(() => {
@@ -319,8 +361,14 @@ export default function CareerBuilderPage() {
             <div style={{ ...s.grid2, marginBottom: 14 }} className="grid2">
               {[["name","氏名","山田 太郎"],["furigana","フリガナ","ヤマダ タロウ"],["age","年齢","30"]].map(([f,l,p]) => (
                 <div key={f}>
-                  <label style={s.label}>{l}</label>
-                  <input style={s.inp} placeholder={p} value={(data.basic as any)[f]} onChange={e => update("basic", f, e.target.value)} />
+                  <label style={s.label}>{l}{f === "name" || f === "furigana" ? <span style={{ color: "#dc2626", marginLeft: 4 }}>*</span> : null}</label>
+                  <input
+                    style={{ ...s.inp, borderColor: errors[f] ? "#dc2626" : undefined }}
+                    placeholder={p}
+                    value={(data.basic as any)[f]}
+                    onChange={e => { update("basic", f, e.target.value); setErrors(prev => ({ ...prev, [f]: "" })); }}
+                  />
+                  {errors[f] && <div style={s.errMsg}>⚠ {errors[f]}</div>}
                 </div>
               ))}
               <div>
@@ -436,7 +484,8 @@ export default function CareerBuilderPage() {
               <div style={s.card} key={f as string}>
                 <div style={s.sectionTitle}><div style={s.bar} />{l as string}</div>
                 <div style={s.desc}>{hint as string}</div>
-                <textarea style={{ ...s.inp, minHeight: Number(rows) * 24 }}
+                <textarea style={{ ...s.inp, minHeight: Number(rows) * 24, borderColor: f === "short" && errors.pr_short ? "#dc2626" : undefined }}
+                  onChange={e => { update("pr", f as string, e.target.value); if (f === "short") setErrors(prev => ({ ...prev, pr_short: "" })); }}
                   placeholder={
                     f === "short"
                       ? "例：SIerで10年以上、金融・保険領域のシステム開発に従事。Python・Next.jsを活用したAI系Webアプリ開発が得意。副業では週2〜3日、フルリモートで対応可能です。"
@@ -444,10 +493,11 @@ export default function CareerBuilderPage() {
                       ? "例：SIer勤務10年以上。金融・保険領域を中心に、要件定義から運用保守まで一貫して担当してきました。\nPM・PL経験があり、チームマネジメントも対応可能です。\n近年はPython・Next.js・Gemini APIを活用したAI系Webアプリ開発にも注力しており、業務効率化ツールや診断アプリを複数リリースしています。副業では週2〜3日・フルリモートで参画可能です。"
                       : "例：SIer勤務10年以上、金融・保険領域のシステム開発を中心にPG・SE・PMとして幅広く経験を積んできました。\n\n【強み】\n・要件定義〜運用保守まで一気通貫でのプロジェクト推進\n・Python / Next.js / Django / FastAPIを活用したフルスタック開発\n・Gemini API / OpenAI APIを活用した生成AIアプリの実装経験\n・FP資格を活かした金融・保険ドメインへの深い理解\n\n【副業について】\n週2〜3日・フルリモートでの参画が可能です。得意領域はAI活用、Webアプリ開発、業務自動化です。"
                   }
-                  value={(data.pr as any)[f as string]} onChange={e => update("pr", f as string, e.target.value)} />
+                  value={(data.pr as any)[f as string]} />
                 <div style={{ fontSize: 11, textAlign: "right", marginTop: 4, color: (data.pr as any)[f as string].length > Number(target) * 1.2 ? "#e85d26" : "#bbb" }}>
                   {(data.pr as any)[f as string].length} 文字（目安 {target}文字）
                 </div>
+                {f === "short" && errors.pr_short && <div style={s.errMsg}>⚠ {errors.pr_short}</div>}
               </div>
             ))}
           </div>
@@ -932,6 +982,11 @@ export default function CareerBuilderPage() {
 
       {/* Footer Nav */}
       <div style={s.footer}>
+        {Object.values(errors).some(e => e) && (
+          <div style={{ position: "absolute", top: -36, left: 0, right: 0, textAlign: "center", fontSize: 12, color: "#dc2626", fontWeight: 600, background: "#fef2f2", padding: "6px", borderTop: "1px solid #fecaca" }}>
+            ⚠ 入力内容を確認してください
+          </div>
+        )}
         <button style={{ ...s.btn, ...s.btnGhost, opacity: step === 0 ? 0.3 : 1, minWidth: 90 }} onClick={() => setStep(s => Math.max(0, s - 1))} disabled={step === 0}>← 前へ</button>
         <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
           {STEPS.map((_, i) => (
@@ -939,7 +994,7 @@ export default function CareerBuilderPage() {
           ))}
         </div>
         {step < STEPS.length - 1
-          ? <button style={{ ...s.btn, ...s.btnPrimary, minWidth: 90 }} onClick={() => setStep(s => s + 1)}>次へ →</button>
+          ? <button style={{ ...s.btn, ...s.btnPrimary, minWidth: 90 }} onClick={goNext}>次へ →</button>
           : <div style={{ minWidth: 90 }} />
         }
       </div>
