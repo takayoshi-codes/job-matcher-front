@@ -307,6 +307,41 @@ export default function CareerBuilderPage() {
         {/* STEP 1: 自己PR */}
         {step === 4 && (
           <div>
+            <div style={{ background: "#fff8f5", border: "1px solid #ffd0c0", borderRadius: 12, padding: 20, marginBottom: 16 }}>
+              <div style={{ fontSize: 15, fontWeight: 700, color: "#1a1a1a", marginBottom: 4, display: "flex", alignItems: "center", gap: 8 }}><div style={{ width: 4, height: 18, background: "#e85d26", borderRadius: 2 }} />AIで自己PRを生成・添削</div>
+              <div style={{ fontSize: 12, color: "#aaa", marginBottom: 16, paddingLeft: 12 }}>入力済みの職務経歴・スキルを元にGemini AIが自己PRを自動生成します</div>
+              <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                <button style={{ padding: "11px 24px", borderRadius: 8, border: "none", cursor: "pointer", fontSize: 13, fontWeight: 700, fontFamily: "inherit", background: "#e85d26", color: "#fff" }}
+                  onClick={async () => {
+                    const summary = [data.projects.map((p) => p.title).join(" "), Object.values(data.tech).flat().join(" "), data.summary.it, data.summary.consulting].filter(Boolean).join(" ");
+                    const prompt = "副業フリーランス向けの自己PRを短文100字・中文400字・長文800字で生成してください。形式：[短文]内容[中文]内容[長文]内容\n\n経歴：" + summary;
+                    try {
+                      const res = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=" + process.env.NEXT_PUBLIC_GEMINI_API_KEY, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }) });
+                      const d = await res.json();
+                      const t = d.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
+                      const sp = t.split(/\[短文\]|\[中文\]|\[長文\]/).map((s) => s.trim()).filter(Boolean);
+                      if (sp[0]) update("pr", "short", sp[0]);
+                      if (sp[1]) update("pr", "medium", sp[1]);
+                      if (sp[2]) update("pr", "long", sp[2]);
+                    } catch { alert("AI生成に失敗しました"); }
+                  }}>✨ AIで生成</button>
+                <button style={{ padding: "11px 24px", borderRadius: 8, border: "1.5px solid #e0ddd8", cursor: "pointer", fontSize: 13, fontWeight: 700, fontFamily: "inherit", background: "#fff", color: "#555" }}
+                  onClick={async () => {
+                    if (!data.pr.short) { alert("まず短文を入力してください"); return; }
+                    const prompt = "以下の自己PRを改善してください。形式：[短文]内容[中文]内容[長文]内容\n\n[短文]" + data.pr.short + "[中文]" + data.pr.medium + "[長文]" + data.pr.long;
+                    try {
+                      const res = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=" + process.env.NEXT_PUBLIC_GEMINI_API_KEY, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }) });
+                      const d = await res.json();
+                      const t = d.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
+                      const sp = t.split(/\[短文\]|\[中文\]|\[長文\]/).map((s) => s.trim()).filter(Boolean);
+                      if (sp[0]) update("pr", "short", sp[0]);
+                      if (sp[1]) update("pr", "medium", sp[1]);
+                      if (sp[2]) update("pr", "long", sp[2]);
+                    } catch { alert("AI添削に失敗しました"); }
+                  }}>📝 AIで添削</button>
+              </div>
+              <div style={{ fontSize: 11, color: "#e85d26", marginTop: 8 }}>※ STEP2〜4の入力が多いほど精度が上がります</div>
+            </div>
             {[["short","短文（100文字目安）","クラウドワークス・ランサーズ向け",3,100],["medium","中文（400文字目安）","レバテック・ビズリーチ向け",7,400],["long","長文（800文字目安）","LinkedIn・Wantedly・職務経歴書フル版向け",14,800]].map(([f,l,hint,rows,target]) => (
               <div style={s.card} key={f as string}>
                 <div style={s.sectionTitle}><div style={s.bar} />{l as string}</div>
