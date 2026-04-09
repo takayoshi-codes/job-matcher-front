@@ -29,7 +29,29 @@ const TECH_LABELS: Record<string, string> = {
 };
 
 const PHASES = ["要件定義", "基本設計", "詳細設計", "開発・実装", "単体テスト", "結合テスト", "システムテスト", "リリース・移行", "運用・保守"];
-const JOB_TYPES = ["Webアプリ開発", "AI・機械学習開発", "業務自動化・効率化", "データ分析", "インフラ・クラウド", "PMO・コンサルティング", "フルスタック開発"];
+const JOB_TYPE_GROUPS = [
+  {
+    label: "開発・エンジニアリング",
+    types: ["Webアプリ開発", "フルスタック開発", "スマホアプリ開発", "API・バックエンド開発", "フロントエンド開発", "業務システム開発", "組み込み・IoT開発"],
+  },
+  {
+    label: "AI・データ",
+    types: ["AI・機械学習開発", "データ分析・可視化", "業務自動化・効率化", "スクレイピング・データ収集", "チャットボット開発"],
+  },
+  {
+    label: "インフラ・クラウド",
+    types: ["インフラ・クラウド構築", "AWS・GCP・Azure", "セキュリティ", "DevOps・CI/CD"],
+  },
+  {
+    label: "PM・コンサル",
+    types: ["PMO・プロジェクト管理", "ITコンサルティング", "要件定義・設計", "業務改善・DX推進"],
+  },
+  {
+    label: "クリエイティブ・その他",
+    types: ["動画編集・映像制作", "SNS運用・マーケティング", "Webデザイン・UI/UX", "グラフィックデザイン", "ライティング・コンテンツ制作", "翻訳・ローカライズ", "テスト・QA", "テクニカルサポート"],
+  },
+];
+const JOB_TYPES = JOB_TYPE_GROUPS.flatMap(g => g.types);
 
 const emptyProject = { from: "", to: "", present: false, title: "", overview: "", position: "", scale: "", phase: [] as string[], work: "", env: "" };
 
@@ -591,16 +613,24 @@ export default function CareerBuilderPage() {
             <div style={s.card}>
               <div style={s.sectionTitle}><div style={s.bar} />希望職種・案件種別</div>
               <div style={s.desc}>複数選択可</div>
-              <div style={s.tagsWrap}>
-                {JOB_TYPES.map(t => {
-                  const on = data.working.jobType.includes(t);
-                  return (
-                    <div key={t} style={{ ...s.tag, ...(on ? s.tagOn : s.tagOff) }} onClick={() => toggleJobType(t)}>
-                      {on && <span style={{ fontSize: 10 }}>✓</span>}{t}
-                    </div>
-                  );
-                })}
-              </div>
+              {JOB_TYPE_GROUPS.map(group => (
+                <div key={group.label} style={{ marginBottom: 16 }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: "#e85d26", letterSpacing: "0.05em", marginBottom: 8, display: "flex", alignItems: "center", gap: 6 }}>
+                    {group.label}
+                    <div style={{ flex: 1, height: 1, background: "#f0ede8" }} />
+                  </div>
+                  <div style={s.tagsWrap}>
+                    {group.types.map(t => {
+                      const on = data.working.jobType.includes(t);
+                      return (
+                        <div key={t} style={{ ...s.tag, ...(on ? s.tagOn : s.tagOff) }} onClick={() => toggleJobType(t)}>
+                          {on && <span style={{ fontSize: 10 }}>✓</span>}{t}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         )}
