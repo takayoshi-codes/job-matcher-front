@@ -1,14 +1,14 @@
-"use client";
+﻿"use client";
 
-import React, { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
 
 const STEPS = [
   { label: "基本情報", icon: "👤" },
-  { label: "職務経歴", icon: "💼" },
+  { label: "自己PR", icon: "✍️" },
   { label: "スキルサマリ", icon: "📋" },
   { label: "技術スタック", icon: "⚙️" },
-  { label: "自己PR", icon: "✍️" },
+  { label: "職務経歴", icon: "💼" },
   { label: "稼働条件", icon: "📅" },
   { label: "プレビュー・出力", icon: "📄" },
 ];
@@ -21,14 +21,11 @@ const TECH_OPTIONS = {
   cloud: ["AWS", "Azure", "GCP", "Vercel", "Railway", "Heroku"],
   ai: ["TensorFlow", "Keras", "scikit-learn", "PyTorch", "BERT", "GPT-2", "Word2Vec", "MeCab", "OpenCV", "Gemini API", "OpenAI API", "Claude API", "HuggingFace"],
   tools: ["Git", "GitHub", "GitHub Actions", "GitLab", "Docker", "Selenium", "Figma", "Redmine", "Backlog", "Slack API", "Gmail API", "Supabase"],
-  sns: ["Instagram運用", "X (Twitter)運用", "TikTok運用", "YouTube運用", "Facebook運用", "LinkedIn運用", "Canva", "Buffer", "Hootsuite", "Meta広告", "Google広告"],
-  video: ["Premiere Pro", "Final Cut Pro", "DaVinci Resolve", "After Effects", "CapCut", "iMovie", "OBS Studio", "Photoshop", "Illustrator", "Lightroom"],
 };
 
 const TECH_LABELS: Record<string, string> = {
   language: "言語", framework: "フレームワーク", db: "データベース",
   os: "OS", cloud: "クラウド", ai: "AI / ML", tools: "ツール",
-  sns: "SNS・マーケティング", video: "動画・デザイン",
 };
 
 const PHASES = ["要件定義", "基本設計", "詳細設計", "開発・実装", "単体テスト", "結合テスト", "システムテスト", "リリース・移行", "運用・保守"];
@@ -71,7 +68,6 @@ const STORAGE_KEY = "career_builder_data";
 
 const s: Record<string, React.CSSProperties> = {
   wrap: { minHeight: "100vh", background: "#f5f5f0", fontFamily: "'Noto Sans JP', sans-serif" },
-  errMsg: { fontSize: 11, color: "#dc2626", marginTop: 4, fontWeight: 600 },
   header: { background: "#fff", borderBottom: "1px solid #ece9e3", boxShadow: "0 1px 4px rgba(0,0,0,0.05)", position: "sticky", top: 0, zIndex: 100 },
   headerInner: { maxWidth: 860, margin: "0 auto", padding: "12px 20px", display: "flex", alignItems: "center", justifyContent: "space-between" },
   logoWrap: { display: "flex", alignItems: "center", gap: 10 },
@@ -94,7 +90,6 @@ const s: Record<string, React.CSSProperties> = {
   btnGhost: { background: "#fff", color: "#555", border: "1.5px solid #e0ddd8" },
   btnMatch: { background: "#1a1a1a", color: "#fff" },
   footer: { position: "fixed" as const, bottom: 0, left: 0, right: 0, background: "#fff", borderTop: "1px solid #ece9e3", padding: "14px 24px", display: "flex", justifyContent: "space-between", alignItems: "center", boxShadow: "0 -2px 10px rgba(0,0,0,0.06)" },
-  footerWrap: { position: "fixed" as const, bottom: 0, left: 0, right: 0 },
   projectCard: { background: "#fff", border: "1.5px solid #f0ede8", borderRadius: 12, padding: 20, marginBottom: 12 },
   projectNum: { fontSize: 11, fontWeight: 700, color: "#e85d26", background: "#fff3ee", padding: "3px 10px", borderRadius: 20 },
   savedBadge: { fontSize: 12, color: "#16a34a", fontWeight: 600, background: "#f0fdf4", padding: "4px 12px", borderRadius: 20, border: "1px solid #bbf7d0" },
@@ -106,96 +101,29 @@ export default function CareerBuilderPage() {
   const [data, setData] = useState(initialData);
   const [saved, setSaved] = useState(false);
   const [outputMode, setOutputMode] = useState("full");
-  const [errors, setErrors] = useState<Record<string, string>>({});
 
-  // バリデーション関数
-  const validate = (targetStep: number): boolean => {
-    const errs: Record<string, string> = {};
-    if (targetStep === 0) {
-      if (!data.basic.name.trim()) errs.name = "氏名は必須です";
-      if (!data.basic.furigana.trim()) errs.furigana = "フリガナは必須です";
-      else if (!new RegExp("^[\u30A1-\u30F6\u30FC ]+$").test(data.basic.furigana.trim())) errs.furigana = "フリガナはカタカナで入力してください";
-      if (data.basic.age && (isNaN(Number(data.basic.age)) || Number(data.basic.age) < 15)) errs.age = "年齢は15以上の数字で入力してください";
-    }
-    if (targetStep === 1) {
-      if (data.projects.length === 0 || !data.projects[0].title.trim())
-        errs.projects = "職務経歴を少なくとも1件入力してください";
-    }
-    if (targetStep === 2) {
-      // スキルサマリは任意（スキップ可能）
-    }
-    if (targetStep === 3) {
-      const allTech = Object.values(data.tech).flat();
-      if (allTech.filter(v => typeof v === "string" && v).length === 0)
-        errs.tech = "技術スタックを少なくとも1つ選択してください";
-    }
-    if (targetStep === 4) {
-      // 自己PRはAI生成後に確認するので任意
-    }
-    if (targetStep === 5) {
-      if (!data.working.rateMin && !data.working.rateMax) errs.rate = "希望単価を入力してください";
-      if (data.working.rateMin && data.working.rateMax && Number(data.working.rateMin) > Number(data.working.rateMax))
-        errs.rate = "下限単価は上限単価以下にしてください";
-    }
-    setErrors(errs);
-    return Object.keys(errs).length === 0;
-  };
-
-  const goNext = () => {
-    if (validate(step)) setStep(s => s + 1);
-  };
-
-  // 起動時にlocalStorageから復元（完全なディープマージ）
+  // 起動時にlocalStorageから復元
   useEffect(() => {
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
-      if (!stored) return;
-      const parsed = JSON.parse(stored);
-      const safe = {
-        basic: { ...initialData.basic, ...(parsed.basic ?? {}) },
-        pr: { ...initialData.pr, ...(parsed.pr ?? {}) },
-        summary: { ...initialData.summary, ...(parsed.summary ?? {}) },
-        tech: {
-          ...initialData.tech,
-          ...(parsed.tech ?? {}),
-          language: Array.isArray(parsed.tech?.language) ? parsed.tech.language : [],
-          framework: Array.isArray(parsed.tech?.framework) ? parsed.tech.framework : [],
-          db: Array.isArray(parsed.tech?.db) ? parsed.tech.db : [],
-          os: Array.isArray(parsed.tech?.os) ? parsed.tech.os : [],
-          cloud: Array.isArray(parsed.tech?.cloud) ? parsed.tech.cloud : [],
-          ai: Array.isArray(parsed.tech?.ai) ? parsed.tech.ai : [],
-          tools: Array.isArray(parsed.tech?.tools) ? parsed.tech.tools : [],
-          sns: Array.isArray(parsed.tech?.sns) ? parsed.tech.sns : [],
-          video: Array.isArray(parsed.tech?.video) ? parsed.tech.video : [],
-          other: parsed.tech?.other ?? "",
-        },
-        projects: Array.isArray(parsed.projects)
-          ? parsed.projects.map((p: any) => ({
-              ...p,
-              phase: Array.isArray(p.phase) ? p.phase : [],
-              from: p.from ?? "",
-              to: p.to ?? "",
-              present: p.present ?? false,
-              title: p.title ?? "",
-              overview: p.overview ?? "",
-              position: p.position ?? "",
-              scale: p.scale ?? "",
-              work: p.work ?? "",
-              env: p.env ?? "",
-            }))
-          : initialData.projects,
-        working: {
-          ...initialData.working,
-          ...(parsed.working ?? {}),
-          weekdays: Array.isArray(parsed.working?.weekdays) ? parsed.working.weekdays : [],
-          jobType: Array.isArray(parsed.working?.jobType) ? parsed.working.jobType : [],
-          daysPerWeek: parsed.working?.daysPerWeek ?? parsed.working?.days ?? "",
-          hoursPerDay: parsed.working?.hoursPerDay ?? "",
-          rateMin: parsed.working?.rateMin ?? "",
-          rateMax: parsed.working?.rateMax ?? "",
-        },
-      };
-      setData(safe);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        // 古いデータとinitialDataをマージして新フィールドのundefinedを防ぐ
+        setData(prev => ({
+          ...prev,
+          ...parsed,
+          working: {
+            ...prev.working,
+            ...(parsed.working ?? {}),
+            weekdays: parsed.working?.weekdays ?? [],
+            daysPerWeek: parsed.working?.daysPerWeek ?? parsed.working?.days ?? "",
+            hoursPerDay: parsed.working?.hoursPerDay ?? "",
+            rateMin: parsed.working?.rateMin ?? "",
+            rateMax: parsed.working?.rateMax ?? "",
+            jobType: parsed.working?.jobType ?? [],
+          }
+        }));
+      }
     } catch { /* 無視 */ }
   }, []);
 
@@ -357,194 +285,36 @@ export default function CareerBuilderPage() {
             <div style={s.sectionTitle}><div style={s.bar} />基本情報</div>
             <div style={s.desc}>プロフィールの基本情報を入力してください</div>
             <div style={{ ...s.grid2, marginBottom: 14 }} className="grid2">
-              {[["name","氏名","山田 太郎"],["furigana","フリガナ","ヤマダ タロウ"],["age","年齢","30"]].map(([f,l,p]) => (
+              {[["name","氏名","山田 太郎"],["furigana","フリガナ","ヤマダ タロウ"],["age","年齢","30"],["gender","性別","男性"],["station","最寄駅","渋谷駅"],["line","路線","JR山手線"]].map(([f,l,p]) => (
                 <div key={f}>
-                  <label style={s.label}>{l}{f === "name" || f === "furigana" ? <span style={{ color: "#dc2626", marginLeft: 4 }}>*</span> : null}</label>
-                  <input
-                    style={{ ...s.inp, borderColor: errors[f] ? "#dc2626" : undefined }}
-                    placeholder={p}
-                    value={(data.basic as any)[f]}
-                    onChange={e => { update("basic", f, e.target.value); setErrors(prev => ({ ...prev, [f]: "" })); }}
-                  />
-                  {errors[f] && <div style={s.errMsg}>⚠ {errors[f]}</div>}
+                  <label style={s.label}>{l}</label>
+                  <input style={s.inp} placeholder={p} value={(data.basic as any)[f]} onChange={e => update("basic", f, e.target.value)} />
                 </div>
               ))}
-              <div>
-                <label style={s.label}>性別</label>
-                <select style={s.inp} value={data.basic.gender} onChange={e => update("basic", "gender", e.target.value)}>
-                  <option value="">選択してください</option>
-                  <option value="男性">男性</option>
-                  <option value="女性">女性</option>
-                  <option value="その他">その他</option>
-                  <option value="答えたくない">答えたくない</option>
-                </select>
-              </div>
             </div>
-
-            {/* 最寄駅・路線 */}
-            <div style={{ ...s.grid2, marginBottom: 14 }} className="grid2">
-              <div>
-                <label style={s.label}>路線</label>
-                <select style={s.inp} value={data.basic.line} onChange={e => update("basic", "line", e.target.value)}>
-                  <option value="">選択または直接入力</option>
-                  <optgroup label="JR">
-                    <option>JR山手線</option><option>JR中央線</option><option>JR総武線</option><option>JR京浜東北線</option><option>JR東海道線</option><option>JR横須賀線</option><option>JR埼京線</option>
-                  </optgroup>
-                  <optgroup label="東京メトロ">
-                    <option>東京メトロ銀座線</option><option>東京メトロ丸ノ内線</option><option>東京メトロ日比谷線</option><option>東京メトロ東西線</option><option>東京メトロ千代田線</option><option>東京メトロ有楽町線</option><option>東京メトロ半蔵門線</option><option>東京メトロ南北線</option><option>東京メトロ副都心線</option>
-                  </optgroup>
-                  <optgroup label="都営">
-                    <option>都営浅草線</option><option>都営三田線</option><option>都営新宿線</option><option>都営大江戸線</option>
-                  </optgroup>
-                  <optgroup label="私鉄">
-                    <option>東急東横線</option><option>東急田園都市線</option><option>小田急小田原線</option><option>京王線</option><option>西武新宿線</option><option>西武池袋線</option><option>東武東上線</option><option>東武伊勢崎線</option><option>京急線</option><option>相鉄線</option>
-                  </optgroup>
-                  <optgroup label="大阪・名古屋・その他">
-                    <option>大阪メトロ御堂筋線</option><option>阪急神戸線</option><option>阪急京都線</option><option>名古屋市営地下鉄東山線</option><option>福岡市地下鉄空港線</option>
-                  </optgroup>
-                </select>
-                <input style={{ ...s.inp, marginTop: 6 }} placeholder="路線名を直接入力" value={data.basic.line} onChange={e => update("basic", "line", e.target.value)} />
-              </div>
-              <div>
-                <label style={s.label}>最寄駅</label>
-                <input style={s.inp} placeholder="例：渋谷駅" value={data.basic.station} onChange={e => update("basic", "station", e.target.value)} />
-              </div>
-            </div>
-
-            {/* 最終学歴 */}
             <div style={{ marginBottom: 14 }}>
               <label style={s.label}>最終学歴</label>
-              <div style={{ display: "flex", gap: 8, marginBottom: 6 }}>
-                <select style={{ ...s.inp, flex: "0 0 160px" }}
-                  onChange={e => {
-                    if (e.target.value) update("basic", "education", e.target.value);
-                    e.target.value = "";
-                  }}>
-                  <option value="">学歴を選択…</option>
-                  <option value="大学院（修士）卒業">大学院（修士）卒業</option>
-                  <option value="大学院（博士）卒業">大学院（博士）卒業</option>
-                  <option value="大学卒業">大学卒業</option>
-                  <option value="短期大学卒業">短期大学卒業</option>
-                  <option value="専門学校卒業">専門学校卒業</option>
-                  <option value="高校卒業">高校卒業</option>
-                  <option value="その他">その他</option>
-                </select>
-                <input style={{ ...s.inp, flex: 1 }} placeholder="例：〇〇大学 情報工学部 卒業（2018年3月）" value={data.basic.education} onChange={e => update("basic", "education", e.target.value)} />
-              </div>
+              <input style={s.inp} placeholder="例：〇〇大学 情報工学部 卒業（2018年3月）" value={data.basic.education} onChange={e => update("basic", "education", e.target.value)} />
             </div>
-
-            {/* 保有資格 */}
             <div>
               <label style={s.label}>保有資格・認定</label>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 8 }}>
-                {[
-                  // 情報処理技術者
-                  "基本情報技術者", "応用情報技術者", "ITストラテジスト", "システムアーキテクト", "プロジェクトマネージャ", "ネットワークスペシャリスト", "データベーススペシャリスト", "情報セキュリティスペシャリスト", "情報セキュリティマネジメント", "ITサービスマネージャ", "システム監査技術者", "エンベデッドシステムスペシャリスト",
-                  // クラウド・インフラ
-                  "AWS SAA", "AWS SAP", "AWS DVA", "AWS SysOps", "AWS ANS", "AWS DBS", "GCP ACE", "GCP PCA", "GCP PDE", "Azure Administrator", "Azure Solutions Architect", "Oracle Cloud",
-                  // AI・データ
-                  "G検定", "E資格", "データサイエンティスト検定", "統計検定2級", "統計検定準1級", "統計検定1級", "Kaggle Expert", "Kaggle Master",
-                  // セキュリティ
-                  "CISSP", "CISM", "CEH", "CompTIA Security+", "情報セキュリティ管理士",
-                  // PM・マネジメント
-                  "PMP", "PgMP", "PMI-ACP", "PRINCE2", "P2M", "ITILファンデーション", "ITIL v4",
-                  // ベンダー資格
-                  "Oracle認定Javaプログラマ（Gold）", "Oracle Database Administrator", "Cisco CCNA", "Cisco CCNP", "Linux技術者認定（LPIC-1）", "Linux技術者認定（LPIC-2）",
-                  // ビジネス・金融
-                  "FP2級", "FP1級", "CFP", "簿記2級", "簿記1級", "中小企業診断士", "社会保険労務士", "行政書士", "宅建士",
-                  // 語学
-                  "TOEIC 700点以上", "TOEIC 800点以上", "TOEIC 900点以上", "TOEFL iBT 80以上", "英検準1級", "英検1級",
-                ].map(cert => {
-                  const on = data.basic.certifications.includes(cert);
-                  return (
-                    <div key={cert} style={{ ...s.tag, ...(on ? s.tagOn : s.tagOff) }}
-                      onClick={() => {
-                        const cur = data.basic.certifications;
-                        const next = on
-                          ? cur.split("、").filter((c: string) => c !== cert).join("、")
-                          : cur ? cur + "、" + cert : cert;
-                        update("basic", "certifications", next);
-                      }}>
-                      {on && <span style={{ fontSize: 10 }}>✓</span>}{cert}
-                    </div>
-                  );
-                })}
-              </div>
-              <textarea style={{ ...s.inp, minHeight: 50 }} placeholder="上記以外の資格・認定を入力（例：CompTIA A+、Salesforce認定アドミニストレーター、情報処理安全確保支援士）" value={data.basic.certifications} onChange={e => update("basic", "certifications", e.target.value)} />
+              <div style={s.hint}>複数ある場合は読点（、）で区切って入力</div>
+              <textarea style={{ ...s.inp, minHeight: 60 }} placeholder="例：応用情報技術者、FP2級、AWS SAA、G検定" value={data.basic.certifications} onChange={e => update("basic", "certifications", e.target.value)} />
             </div>
           </div>
         )}
 
         {/* STEP 4: 自己PR */}
-        {step === 4 && (
+        {step === 1 && (
           <div>
-            <div style={{ ...s.card, marginBottom: 16, background: "#fff8f5", border: "1px solid #ffd0c0" }}>
-              <div style={s.sectionTitle}><div style={s.bar} />AIで自己PRを生成・添削</div>
-              <div style={s.desc}>入力済みの職務経歴・スキルを元にGemini AIが自己PRを自動生成します</div>
-              <div style={{ display: "flex", gap: 10, flexWrap: "wrap" as const }}>
-                <button
-                  style={{ ...s.btn, ...s.btnPrimary, fontSize: 13, padding: "10px 20px" }}
-                  onClick={async () => {
-                    const careerSummary = [
-                      data.projects.map(p => p.title + " " + p.work).join(" "),
-                      Object.values(data.tech).flat().join("、"),
-                      data.summary.it, data.summary.consulting, data.summary.management,
-                    ].filter(Boolean).join("\n");
-                    const prompt = "以下の職務経歴・スキルを元に、副業・フリーランス向けの自己PRを3種類（短文100字、中文400字、長文800字）生成してください。\n\n" + careerSummary + "\n\n以下の形式で返してください：\n[短文]\n（100文字程度）\n\n[中文]\n（400文字程度）\n\n[長文]\n（800文字程度）";
-                    try {
-                      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${process.env.NEXT_PUBLIC_GEMINI_API_KEY}`;
-                      const res = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }) });
-                      const json = await res.json();
-                      const text = json.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
-                      const short = text.match(/\[短文\]\s*([\s\S]*?)(?=\[中文\]|$)/)?.[1]?.trim() ?? "";
-                      const medium = text.match(/\[中文\]\s*([\s\S]*?)(?=\[長文\]|$)/)?.[1]?.trim() ?? "";
-                      const long = text.match(/\[長文\]\s*([\s\S]*?)$/)?.[1]?.trim() ?? "";
-                      if (short) update("pr", "short", short);
-                      if (medium) update("pr", "medium", medium);
-                      if (long) update("pr", "long", long);
-                    } catch (e) { alert("AI生成に失敗しました。しばらく待ってから再試行してください。"); }
-                  }}
-                >✨ AIで自己PRを生成</button>
-                <button
-                  style={{ ...s.btn, ...s.btnGhost, fontSize: 13, padding: "10px 20px" }}
-                  onClick={async () => {
-                    if (!data.pr.short && !data.pr.medium && !data.pr.long) { alert("まず自己PRを入力してください"); return; }
-                    const prompt = "以下の自己PRを副業・フリーランス向けに改善・添削してください。より具体的で魅力的な表現に改善し、同じ形式で返してください。\n\n[短文]\n" + data.pr.short + "\n\n[中文]\n" + data.pr.medium + "\n\n[長文]\n" + data.pr.long;
-                    try {
-                      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${process.env.NEXT_PUBLIC_GEMINI_API_KEY}`;
-                      const res = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }) });
-                      const json = await res.json();
-                      const text = json.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
-                      const short = text.match(/\[短文\]\s*([\s\S]*?)(?=\[中文\]|$)/)?.[1]?.trim() ?? "";
-                      const medium = text.match(/\[中文\]\s*([\s\S]*?)(?=\[長文\]|$)/)?.[1]?.trim() ?? "";
-                      const long = text.match(/\[長文\]\s*([\s\S]*?)$/)?.[1]?.trim() ?? "";
-                      if (short) update("pr", "short", short);
-                      if (medium) update("pr", "medium", medium);
-                      if (long) update("pr", "long", long);
-                    } catch (e) { alert("AI添削に失敗しました。しばらく待ってから再試行してください。"); }
-                  }}
-                >📝 AIで添削・改善</button>
-              </div>
-              <div style={{ fontSize: 11, color: "#e85d26", marginTop: 8 }}>※ STEP2・3・4の入力が多いほど精度が上がります</div>
-            </div>
             {[["short","短文（100文字目安）","クラウドワークス・ランサーズ向け",3,100],["medium","中文（400文字目安）","レバテック・ビズリーチ向け",7,400],["long","長文（800文字目安）","LinkedIn・Wantedly・職務経歴書フル版向け",14,800]].map(([f,l,hint,rows,target]) => (
               <div style={s.card} key={f as string}>
                 <div style={s.sectionTitle}><div style={s.bar} />{l as string}</div>
                 <div style={s.desc}>{hint as string}</div>
-                <textarea style={{ ...s.inp, minHeight: Number(rows) * 24, borderColor: f === "short" && errors.pr_short ? "#dc2626" : undefined }}
-                  onChange={e => { update("pr", f as string, e.target.value); if (f === "short") setErrors(prev => ({ ...prev, pr_short: "" })); }}
-                  placeholder={
-                    f === "short"
-                      ? "例：SIerで10年以上、金融・保険領域のシステム開発に従事。Python・Next.jsを活用したAI系Webアプリ開発が得意。副業では週2〜3日、フルリモートで対応可能です。"
-                      : f === "medium"
-                      ? "例：SIer勤務10年以上。金融・保険領域を中心に、要件定義から運用保守まで一貫して担当してきました。\nPM・PL経験があり、チームマネジメントも対応可能です。\n近年はPython・Next.js・Gemini APIを活用したAI系Webアプリ開発にも注力しており、業務効率化ツールや診断アプリを複数リリースしています。副業では週2〜3日・フルリモートで参画可能です。"
-                      : "例：SIer勤務10年以上、金融・保険領域のシステム開発を中心にPG・SE・PMとして幅広く経験を積んできました。\n\n【強み】\n・要件定義〜運用保守まで一気通貫でのプロジェクト推進\n・Python / Next.js / Django / FastAPIを活用したフルスタック開発\n・Gemini API / OpenAI APIを活用した生成AIアプリの実装経験\n・FP資格を活かした金融・保険ドメインへの深い理解\n\n【副業について】\n週2〜3日・フルリモートでの参画が可能です。得意領域はAI活用、Webアプリ開発、業務自動化です。"
-                  }
-                  value={(data.pr as any)[f as string]} />
+                <textarea style={{ ...s.inp, minHeight: Number(rows) * 24 }} placeholder={`${l}の自己PRを入力…`} value={(data.pr as any)[f as string]} onChange={e => update("pr", f as string, e.target.value)} />
                 <div style={{ fontSize: 11, textAlign: "right", marginTop: 4, color: (data.pr as any)[f as string].length > Number(target) * 1.2 ? "#e85d26" : "#bbb" }}>
                   {(data.pr as any)[f as string].length} 文字（目安 {target}文字）
                 </div>
-                {f === "short" && errors.pr_short && <div style={s.errMsg}>⚠ {errors.pr_short}</div>}
               </div>
             ))}
           </div>
@@ -553,69 +323,13 @@ export default function CareerBuilderPage() {
         {/* STEP 2: スキルサマリ */}
         {step === 2 && (
           <div>
-            {[
-              ["consulting","コンサルティングスキル","顧客折衝・要件定義・提案・業務改善などの経験","・顧客折衝・要件定義の経験あり\n・提案書作成・プレゼン経験あり\n・業務改善プロジェクトを主導"],
-              ["management","マネジメントスキル","PM・PL経験、チーム規模、管理業務などを具体的に","・PLとして5名チームをマネジメント\n・工数管理・進捗報告を担当\n・ベンダーコントロール経験あり"],
-            ].map(([f,l,hint,ph]) => (
+            {[["consulting","コンサルティングスキル","顧客折衝・要件定義・提案・業務改善などの経験"],["management","マネジメントスキル","PM・PL経験、チーム規模、管理業務などを具体的に"],["it","ITスキル・テクニカルスキル","開発フェーズ経験、業界知見、先端技術を記載"]].map(([f,l,hint]) => (
               <div style={s.card} key={f}>
                 <div style={s.sectionTitle}><div style={s.bar} />{l}</div>
                 <div style={s.desc}>{hint}</div>
-                <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
-                  {["経験なし・該当なし"].map(opt => (
-                    <div key={opt}
-                      style={{ ...s.tag, ...((data.summary as any)[f] === opt ? s.tagOn : s.tagOff) }}
-                      onClick={() => update("summary", f, (data.summary as any)[f] === opt ? "" : opt)}>
-                      {(data.summary as any)[f] === opt && <span style={{ fontSize: 10 }}>✓</span>}{opt}
-                    </div>
-                  ))}
-                </div>
-                {(data.summary as any)[f] !== "経験なし・該当なし" && (
-                  <textarea style={{ ...s.inp, minHeight: 140 }} placeholder={ph as string} value={(data.summary as any)[f]} onChange={e => update("summary", f, e.target.value)} />
-                )}
+                <textarea style={{ ...s.inp, minHeight: 160 }} placeholder={`・〇〇の経験\n・〇〇を担当`} value={(data.summary as any)[f]} onChange={e => update("summary", f, e.target.value)} />
               </div>
             ))}
-
-            {/* ITスキル：タグ選択＋自由入力 */}
-            <div style={s.card}>
-              <div style={s.sectionTitle}><div style={s.bar} />ITスキル・テクニカルスキル</div>
-              <div style={s.desc}>得意な技術領域・業界知見・開発フェーズ経験を選択＋自由記述</div>
-              {/* タグ選択 */}
-              {[
-                { label: "得意な開発フェーズ", tags: ["要件定義", "基本設計", "詳細設計", "開発・実装", "テスト", "リリース・移行", "運用・保守"] },
-                { label: "業界・ドメイン知識", tags: ["金融・保険", "製造業", "流通・小売", "医療・ヘルスケア", "不動産", "教育", "EC・通販", "SaaS・IT", "官公庁・公共"] },
-                { label: "得意な技術領域", tags: ["Webアプリ開発", "AI・機械学習", "データ分析", "業務自動化", "インフラ・クラウド", "モバイルアプリ", "組み込み・IoT", "セキュリティ"] },
-              ].map(group => (
-                <div key={group.label} style={{ marginBottom: 14 }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: "#e85d26", marginBottom: 6 }}>{group.label}</div>
-                  <div style={s.tagsWrap}>
-                    {group.tags.map(tag => {
-                      const on = typeof data.summary.it === "string" && data.summary.it.includes(tag);
-                      return (
-                        <div key={tag} style={{ ...s.tag, ...(on ? s.tagOn : s.tagOff) }}
-                          onClick={() => {
-                            const cur = data.summary.it;
-                            const next = on
-                              ? cur.split("・").filter((t: string) => t !== tag).join("・")
-                              : cur ? cur + "・" + tag : tag;
-                            update("summary", "it", next);
-                          }}>
-                          {on && <span style={{ fontSize: 10 }}>✓</span>}{tag}
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              ))}
-              {/* 自由入力 */}
-              <div style={{ marginTop: 8 }}>
-                <div style={{ fontSize: 11, color: "#888", marginBottom: 6 }}>追記・詳細（自由記述）</div>
-                <textarea style={{ ...s.inp, minHeight: 100 }}
-                  placeholder={"例：金融系基幹システムの開発経験5年。要件定義〜運用保守まで一貫して担当。\nAWS上でのマイクロサービス設計・構築が得意。"}
-                  value={data.summary.it}
-                  onChange={e => update("summary", "it", e.target.value)}
-                />
-              </div>
-            </div>
           </div>
         )}
 
@@ -701,7 +415,7 @@ export default function CareerBuilderPage() {
                   <label style={s.label}>担当フェーズ</label>
                   <div style={{ ...s.tagsWrap, marginTop: 6 }}>
                     {PHASES.map(ph => {
-                      const on = Array.isArray(p.phase) && p.phase.includes(ph);
+                      const on = p.phase.includes(ph);
                       return (
                         <div key={ph} style={{ ...s.tag, ...(on ? s.tagOn : s.tagOff) }} onClick={() => togglePhase(i, ph)}>
                           {on && <span style={{ fontSize: 10 }}>✓</span>}{ph}
@@ -802,7 +516,7 @@ export default function CareerBuilderPage() {
                 <label style={s.label}>稼働可能曜日</label>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 6 }}>
                   {["平日（月〜金）", "土曜日", "日曜日", "祝日"].map(day => {
-                    const on = Array.isArray(data.working.weekdays) && data.working.weekdays.includes(day);
+                    const on = data.working.weekdays.includes(day);
                     return (
                       <div key={day}
                         style={{ ...s.tag, ...(on ? s.tagOn : s.tagOff) }}
@@ -907,7 +621,7 @@ export default function CareerBuilderPage() {
                   </div>
                   <div style={s.tagsWrap}>
                     {group.types.map(t => {
-                      const on = Array.isArray(data.working.jobType) && data.working.jobType.includes(t);
+                      const on = data.working.jobType.includes(t);
                       return (
                         <div key={t} style={{ ...s.tag, ...(on ? s.tagOn : s.tagOff) }} onClick={() => toggleJobType(t)}>
                           {on && <span style={{ fontSize: 10 }}>✓</span>}{t}
@@ -931,151 +645,94 @@ export default function CareerBuilderPage() {
               ))}
             </div>
 
-            {/* プレビュー - モダンデザイン */}
-            <div style={{ background: "#fff", borderRadius: 12, overflow: "hidden", boxShadow: "0 2px 16px rgba(0,0,0,0.08)", marginBottom: 16 }}>
+            {/* プレビュー */}
+            <div style={{ background: "#fff", borderRadius: 12, padding: 36, boxShadow: "0 2px 12px rgba(0,0,0,0.08)", marginBottom: 16 }}>
+              <div style={{ fontSize: 22, fontWeight: 700, textAlign: "center", marginBottom: 6 }}>{outputMode === "skill" ? "スキルシート" : "職務経歴書"}</div>
+              <div style={{ fontSize: 17, fontWeight: 600, textAlign: "center", marginBottom: 4 }}>{data.basic.name || "（氏名未入力）"}</div>
+              <div style={{ fontSize: 12, color: "#888", textAlign: "center", marginBottom: 24 }}>
+                {[data.basic.age && `${data.basic.age}歳`, data.basic.gender, data.basic.station && `最寄：${data.basic.station}`].filter(Boolean).join("　｜　")}
+              </div>
+              <hr style={{ border: "none", borderTop: "2px solid #e85d26", marginBottom: 20 }} />
 
-              {/* ヘッダー */}
-              <div style={{ background: "#1a1a2e", padding: "28px 32px", display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: 16, flexWrap: "wrap" as const }}>
-                <div>
-                  <div style={{ fontSize: 10, letterSpacing: "0.18em", textTransform: "uppercase" as const, color: "rgba(255,255,255,0.4)", marginBottom: 6 }}>
-                    {outputMode === "skill" ? "Skill Sheet" : outputMode === "agent" ? "Career Summary" : "Curriculum Vitae"}
-                  </div>
-                  <div style={{ fontSize: 26, fontWeight: 500, color: "#fff", marginBottom: 3 }}>{data.basic.name || "（氏名未入力）"}</div>
-                  <div style={{ fontSize: 11, color: "rgba(255,255,255,0.4)", letterSpacing: "0.1em" }}>
-                    {[data.basic.age && `${data.basic.age}歳`, data.basic.gender !== "答えたくない" ? data.basic.gender : "", data.basic.station && `${data.basic.station}（${data.basic.line}）`].filter(Boolean).join("　｜　")}
-                  </div>
+              {data.basic.certifications && (
+                <div style={{ marginBottom: 20 }}>
+                  <div style={{ fontWeight: 700, fontSize: 13, background: "#f8f7f4", padding: "7px 12px", borderLeft: "4px solid #e85d26", borderRadius: "0 6px 6px 0", marginBottom: 10 }}>保有資格</div>
+                  <div style={{ fontSize: 13 }}>{data.basic.certifications}</div>
                 </div>
-                <div style={{ display: "flex", flexDirection: "column" as const, alignItems: "flex-end", gap: 5 }}>
-                  {data.working.jobType.slice(0, 3).map((jt: string) => (
-                    <span key={jt} style={{ fontSize: 10, padding: "3px 10px", borderRadius: 20, border: "0.5px solid rgba(255,255,255,0.25)", color: "rgba(255,255,255,0.65)" }}>{jt}</span>
+              )}
+
+              {(outputMode === "full" || outputMode === "agent") && prText && (
+                <div style={{ marginBottom: 20 }}>
+                  <div style={{ fontWeight: 700, fontSize: 13, background: "#f8f7f4", padding: "7px 12px", borderLeft: "4px solid #e85d26", borderRadius: "0 6px 6px 0", marginBottom: 10 }}>自己PR</div>
+                  <div style={{ fontSize: 13, lineHeight: 1.9, whiteSpace: "pre-wrap" }}>{prText}</div>
+                </div>
+              )}
+
+              {(data.summary.consulting || data.summary.management || data.summary.it) && (
+                <div style={{ marginBottom: 20 }}>
+                  <div style={{ fontWeight: 700, fontSize: 13, background: "#f8f7f4", padding: "7px 12px", borderLeft: "4px solid #e85d26", borderRadius: "0 6px 6px 0", marginBottom: 10 }}>スキルサマリ</div>
+                  {[["コンサルティングスキル", data.summary.consulting],["マネジメントスキル", data.summary.management],["ITスキル", data.summary.it]].filter(([,v]) => v).map(([l,v]) => (
+                    <div key={l} style={{ marginBottom: 12 }}>
+                      <div style={{ fontWeight: 700, fontSize: 12, color: "#e85d26", marginBottom: 4 }}>【{l}】</div>
+                      <div style={{ fontSize: 13, lineHeight: 1.9, whiteSpace: "pre-wrap" }}>{v}</div>
+                    </div>
                   ))}
                 </div>
-              </div>
-              <div style={{ height: 4, background: "linear-gradient(90deg, #e85d26 0%, #f59e0b 100%)" }} />
+              )}
 
-              {/* 2カラムボディ */}
-              <div style={{ display: "flex" }}>
-
-                {/* サイドバー */}
-                <div style={{ width: 200, flexShrink: 0, background: "#f9f8f6", padding: "24px 18px", borderRight: "0.5px solid #ece9e3" }}>
-
-                  {/* 基本情報 */}
-                  <div style={{ marginBottom: 22 }}>
-                    <div style={{ fontSize: 9, fontWeight: 500, letterSpacing: "0.16em", textTransform: "uppercase" as const, color: "#e85d26", marginBottom: 10, display: "flex", alignItems: "center", gap: 6 }}>
-                      基본情報<div style={{ flex: 1, height: 1, background: "#f0ede8" }} />
-                    </div>
-                    {data.basic.education && <div style={{ fontSize: 11, color: "#555", lineHeight: 1.7, marginBottom: 3 }}><span style={{ color: "#888", fontSize: 10 }}>学歴　</span>{data.basic.education}</div>}
-                    {data.basic.station && <div style={{ fontSize: 11, color: "#555", lineHeight: 1.7, marginBottom: 3 }}><span style={{ color: "#888", fontSize: 10 }}>最寄　</span>{data.basic.station}</div>}
-                    {(data.working.rateMin || data.working.rateMax) && <div style={{ fontSize: 11, color: "#555", lineHeight: 1.7, marginBottom: 3 }}><span style={{ color: "#888", fontSize: 10 }}>単価　</span>{data.working.rateMin}〜{data.working.rateMax}円/{data.working.rateUnit === "月額" ? "月" : "時"}</div>}
-                    {data.working.daysPerWeek && <div style={{ fontSize: 11, color: "#555", lineHeight: 1.7, marginBottom: 3 }}><span style={{ color: "#888", fontSize: 10 }}>稼働　</span>{data.working.daysPerWeek}</div>}
-                    {data.working.remote && <div style={{ fontSize: 11, color: "#555", lineHeight: 1.7 }}><span style={{ color: "#888", fontSize: 10 }}>形態　</span>{data.working.remote}</div>}
-                  </div>
-
-                  {/* 技術スタック */}
-                  {Object.entries(data.tech).some(([k, v]) => k !== "other" && Array.isArray(v) && (v as string[]).length > 0) && (
-                    <div style={{ marginBottom: 22 }}>
-                      <div style={{ fontSize: 9, fontWeight: 500, letterSpacing: "0.16em", textTransform: "uppercase" as const, color: "#e85d26", marginBottom: 10, display: "flex", alignItems: "center", gap: 6 }}>
-                        Skills<div style={{ flex: 1, height: 1, background: "#f0ede8" }} />
-                      </div>
-                      <div style={{ display: "flex", flexWrap: "wrap" as const, gap: 3 }}>
-                        {[...data.tech.language, ...data.tech.framework, ...data.tech.db, ...data.tech.cloud, ...data.tech.ai.slice(0, 4)].filter(Boolean).map((sk: string) => (
-                          <span key={sk} style={{ fontSize: 9, padding: "2px 7px", borderRadius: 4, background: "#fff3ee", border: "0.5px solid #ffd0c0", color: "#c0440e" }}>{sk}</span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* 資格 */}
-                  {data.basic.certifications && (
-                    <div>
-                      <div style={{ fontSize: 9, fontWeight: 500, letterSpacing: "0.16em", textTransform: "uppercase" as const, color: "#e85d26", marginBottom: 10, display: "flex", alignItems: "center", gap: 6 }}>
-                        資格<div style={{ flex: 1, height: 1, background: "#f0ede8" }} />
-                      </div>
-                      {data.basic.certifications.split(/[、,，
-]/).filter(Boolean).map((c: string) => (
-                        <div key={c} style={{ fontSize: 10, color: "#555", padding: "4px 0", borderBottom: "0.5px solid #f0ede8", lineHeight: 1.5 }}>{c.trim()}</div>
+              <div style={{ marginBottom: 20 }}>
+                <div style={{ fontWeight: 700, fontSize: 13, background: "#f8f7f4", padding: "7px 12px", borderLeft: "4px solid #e85d26", borderRadius: "0 6px 6px 0", marginBottom: 10 }}>技術スタック</div>
+                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+                  <tbody>
+                    {[["言語",data.tech.language],["FW",data.tech.framework],["DB",data.tech.db],["OS",data.tech.os],["クラウド",data.tech.cloud],["AI/ML",data.tech.ai],["ツール",[...data.tech.tools,...(data.tech.other?[data.tech.other]:[])]]]
+                      .filter(([,v]) => (v as string[]).length > 0)
+                      .map(([l,v]) => (
+                        <tr key={l as string} style={{ borderBottom: "1px solid #f5f3ef" }}>
+                          <td style={{ padding: "7px 10px", fontWeight: 600, color: "#666", width: 80 }}>{l as string}</td>
+                          <td style={{ padding: "7px 10px" }}>{(v as string[]).join("　/　")}</td>
+                        </tr>
                       ))}
-                    </div>
-                  )}
-                </div>
-
-                {/* メインコンテンツ */}
-                <div style={{ flex: 1, padding: "24px 26px", minWidth: 0 }}>
-
-                  {/* 自己PR */}
-                  {(outputMode === "full" || outputMode === "agent") && prText && (
-                    <div style={{ marginBottom: 22 }}>
-                      <div style={{ fontSize: 10, fontWeight: 500, letterSpacing: "0.12em", textTransform: "uppercase" as const, color: "#e85d26", display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
-                        自己PR<div style={{ flex: 1, height: 1, background: "#f0ede8" }} />
-                      </div>
-                      <div style={{ background: "#f9f8f6", borderRadius: 8, padding: "14px 16px", fontSize: 12, color: "#333", lineHeight: 1.9, borderLeft: "3px solid #e85d26", whiteSpace: "pre-wrap" as const }}>{prText}</div>
-                    </div>
-                  )}
-
-                  {/* スキルサマリ */}
-                  {(data.summary.consulting || data.summary.management || (data.summary.it && data.summary.it !== "経験なし・該当なし")) && (
-                    <div style={{ marginBottom: 22 }}>
-                      <div style={{ fontSize: 10, fontWeight: 500, letterSpacing: "0.12em", textTransform: "uppercase" as const, color: "#e85d26", display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
-                        スキルサマリ<div style={{ flex: 1, height: 1, background: "#f0ede8" }} />
-                      </div>
-                      {[["コンサルティング", data.summary.consulting],["マネジメント", data.summary.management],["ITスキル", data.summary.it]].filter(([,v]) => v && v !== "経験なし・該当なし").map(([l,v]) => (
-                        <div key={l} style={{ marginBottom: 10 }}>
-                          <div style={{ fontSize: 10, fontWeight: 500, color: "#e85d26", marginBottom: 3 }}>▍{l}</div>
-                          <div style={{ fontSize: 12, lineHeight: 1.8, color: "#444", whiteSpace: "pre-wrap" as const }}>{v}</div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* 職務経歴 タイムライン */}
-                  {outputMode !== "skill" && data.projects.some(p => p.title) && (
-                    <div style={{ marginBottom: 22 }}>
-                      <div style={{ fontSize: 10, fontWeight: 500, letterSpacing: "0.12em", textTransform: "uppercase" as const, color: "#e85d26", display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
-                        職務経歴<div style={{ flex: 1, height: 1, background: "#f0ede8" }} />
-                      </div>
-                      <div style={{ position: "relative", paddingLeft: 20 }}>
-                        <div style={{ position: "absolute", left: 6, top: 6, bottom: 0, width: 1, background: "#ece9e3" }} />
-                        {data.projects.filter(p => p.title).map((p, i) => (
-                          <div key={i} style={{ position: "relative", marginBottom: 18 }}>
-                            <div style={{ position: "absolute", left: -20, top: 5, width: 12, height: 12, borderRadius: "50%", background: "#fff", border: "2px solid #e85d26" }} />
-                            <div style={{ fontSize: 10, color: "#e85d26", fontWeight: 500, marginBottom: 2 }}>
-                              {p.from} 〜 {p.present ? "現在" : p.to}
-                              {p.position && <span style={{ marginLeft: 8, color: "#888" }}>{p.position}</span>}
-                            </div>
-                            <div style={{ fontSize: 13, fontWeight: 500, color: "#1a1a2e", marginBottom: 5 }}>{p.title}</div>
-                            {p.overview && <div style={{ fontSize: 11, color: "#666", lineHeight: 1.7, marginBottom: 5 }}>{p.overview}</div>}
-                            <div style={{ display: "flex", flexWrap: "wrap" as const, gap: 4, marginBottom: p.env ? 5 : 0 }}>
-                              {Array.isArray(p.phase) && p.phase.map((ph: string) => (
-                                <span key={ph} style={{ fontSize: 9, padding: "2px 7px", borderRadius: 3, background: "#f0ede8", color: "#666", border: "0.5px solid #e0ddd8" }}>{ph}</span>
-                              ))}
-                              {p.scale && <span style={{ fontSize: 9, padding: "2px 7px", borderRadius: 3, background: "#f0ede8", color: "#666", border: "0.5px solid #e0ddd8" }}>{p.scale}</span>}
-                            </div>
-                            {p.env && <div style={{ fontSize: 10, color: "#777", background: "#f5f3ef", padding: "6px 10px", borderRadius: 5, whiteSpace: "pre-wrap" as const, marginTop: 4 }}>{p.env}</div>}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* 稼働条件 */}
-                  {(outputMode === "full" || outputMode === "agent") && (data.working.rateMin || data.working.daysPerWeek || data.working.jobType.length > 0) && (
-                    <div>
-                      <div style={{ fontSize: 10, fontWeight: 500, letterSpacing: "0.12em", textTransform: "uppercase" as const, color: "#e85d26", display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
-                        稼働条件<div style={{ flex: 1, height: 1, background: "#f0ede8" }} />
-                      </div>
-                      <div style={{ display: "grid", gridTemplateColumns: "90px 1fr", fontSize: 12, rowGap: 6 }}>
-                        {[["希望単価", (data.working.rateMin || data.working.rateMax) ? `${data.working.rateMin ? data.working.rateMin + "円" : ""}〜${data.working.rateMax ? data.working.rateMax + "円" : ""}（${data.working.rateUnit}）` : ""],["稼働日数", data.working.daysPerWeek],["稼働曜日", Array.isArray(data.working.weekdays) ? data.working.weekdays.join("・") : ""],["リモート", data.working.remote],["勤務エリア", data.working.location],["参画可能時期", data.working.available],["希望職種", Array.isArray(data.working.jobType) ? data.working.jobType.join("　/　") : ""]].filter(([,v]) => v).map(([l,v]) => (
-                          <div key={l as string} style={{ display: "contents" }}>
-                            <div style={{ color: "#888", fontSize: 11 }}>{l}</div>
-                            <div style={{ color: "#333" }}>{v}</div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                </div>
+                  </tbody>
+                </table>
               </div>
+
+              {outputMode !== "agent" && data.projects.some(p => p.title) && (
+                <div style={{ marginBottom: 20 }}>
+                  <div style={{ fontWeight: 700, fontSize: 13, background: "#f8f7f4", padding: "7px 12px", borderLeft: "4px solid #e85d26", borderRadius: "0 6px 6px 0", marginBottom: 10 }}>職務経歴</div>
+                  {data.projects.filter(p => p.title).map((p, i) => (
+                    <div key={i} style={{ background: "#f9f8f6", border: "1px solid #ede9e3", borderRadius: 8, padding: 16, marginBottom: 12 }}>
+                      <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 8 }}>{p.title}</div>
+                      <div style={{ display: "flex", gap: 16, fontSize: 12, color: "#888", marginBottom: 8, flexWrap: "wrap" }}>
+                        {p.from && <span>📅 {p.from} 〜 {p.present ? "現在" : p.to}</span>}
+                        {p.position && <span>👤 {p.position}</span>}
+                        {p.scale && <span>👥 {p.scale}</span>}
+                      </div>
+                      {p.overview && <div style={{ fontSize: 12, marginBottom: 8, lineHeight: 1.8 }}>{p.overview}</div>}
+                      {p.phase.length > 0 && <div style={{ fontSize: 12, color: "#888", marginBottom: 8 }}>担当フェーズ：{p.phase.join("　/　")}</div>}
+                      {p.work && <div style={{ fontSize: 13, lineHeight: 1.9, whiteSpace: "pre-wrap" }}>{p.work}</div>}
+                      {p.env && <div style={{ fontSize: 12, color: "#777", background: "#f0ede8", padding: "8px 12px", borderRadius: 6, whiteSpace: "pre-wrap", marginTop: 8 }}>{p.env}</div>}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {(outputMode === "full" || outputMode === "agent") && (
+                <div>
+                  <div style={{ fontWeight: 700, fontSize: 13, background: "#f8f7f4", padding: "7px 12px", borderLeft: "4px solid #e85d26", borderRadius: "0 6px 6px 0", marginBottom: 10 }}>稼働条件</div>
+                  <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+                    <tbody>
+                      {[["希望単価", (data.working.rateMin || data.working.rateMax) ? `${data.working.rateMin ? data.working.rateMin + "円" : ""}〜${data.working.rateMax ? data.working.rateMax + "円" : ""}（${data.working.rateUnit}）` : ""],["稼働日数",data.working.daysPerWeek],["稼働時間",data.working.hoursPerDay],["稼働曜日",data.working.weekdays.join("、")],["リモート",data.working.remote],["勤務エリア",data.working.location],["参画可能時期",data.working.available],["希望職種",data.working.jobType.join("　/　")]]
+                        .filter(([,v]) => v)
+                        .map(([l,v]) => (
+                          <tr key={l} style={{ borderBottom: "1px solid #f5f3ef" }}>
+                            <td style={{ padding: "7px 10px", fontWeight: 600, color: "#666", width: 110 }}>{l}</td>
+                            <td style={{ padding: "7px 10px" }}>{v}</td>
+                          </tr>
+                        ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
 
             {/* 出力ボタン群 */}
@@ -1100,11 +757,6 @@ export default function CareerBuilderPage() {
 
       {/* Footer Nav */}
       <div style={s.footer}>
-        {Object.values(errors).some(e => e) && (
-          <div style={{ position: "absolute", top: -36, left: 0, right: 0, textAlign: "center", fontSize: 12, color: "#dc2626", fontWeight: 600, background: "#fef2f2", padding: "6px", borderTop: "1px solid #fecaca" }}>
-            ⚠ 入力内容を確認してください
-          </div>
-        )}
         <button style={{ ...s.btn, ...s.btnGhost, opacity: step === 0 ? 0.3 : 1, minWidth: 90 }} onClick={() => setStep(s => Math.max(0, s - 1))} disabled={step === 0}>← 前へ</button>
         <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
           {STEPS.map((_, i) => (
@@ -1112,10 +764,17 @@ export default function CareerBuilderPage() {
           ))}
         </div>
         {step < STEPS.length - 1
-          ? <button style={{ ...s.btn, ...s.btnPrimary, minWidth: 90 }} onClick={goNext}>次へ →</button>
+          ? <button style={{ ...s.btn, ...s.btnPrimary, minWidth: 90 }} onClick={() => setStep(s => s + 1)}>次へ →</button>
           : <div style={{ minWidth: 90 }} />
         }
       </div>
     </div>
   );
 }
+
+
+
+
+
+
+
