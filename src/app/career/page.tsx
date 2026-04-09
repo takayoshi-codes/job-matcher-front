@@ -931,94 +931,151 @@ export default function CareerBuilderPage() {
               ))}
             </div>
 
-            {/* プレビュー */}
-            <div style={{ background: "#fff", borderRadius: 12, padding: 36, boxShadow: "0 2px 12px rgba(0,0,0,0.08)", marginBottom: 16 }}>
-              <div style={{ fontSize: 22, fontWeight: 700, textAlign: "center", marginBottom: 6 }}>{outputMode === "skill" ? "スキルシート" : "職務経歴書"}</div>
-              <div style={{ fontSize: 17, fontWeight: 600, textAlign: "center", marginBottom: 4 }}>{data.basic.name || "（氏名未入力）"}</div>
-              <div style={{ fontSize: 12, color: "#888", textAlign: "center", marginBottom: 24 }}>
-                {[data.basic.age && `${data.basic.age}歳`, data.basic.gender, data.basic.station && `最寄：${data.basic.station}`].filter(Boolean).join("　｜　")}
-              </div>
-              <hr style={{ border: "none", borderTop: "2px solid #e85d26", marginBottom: 20 }} />
+            {/* プレビュー - モダンデザイン */}
+            <div style={{ background: "#fff", borderRadius: 12, overflow: "hidden", boxShadow: "0 2px 16px rgba(0,0,0,0.08)", marginBottom: 16 }}>
 
-              {data.basic.certifications && (
-                <div style={{ marginBottom: 20 }}>
-                  <div style={{ fontWeight: 700, fontSize: 13, background: "#f8f7f4", padding: "7px 12px", borderLeft: "4px solid #e85d26", borderRadius: "0 6px 6px 0", marginBottom: 10 }}>保有資格</div>
-                  <div style={{ fontSize: 13 }}>{data.basic.certifications}</div>
-                </div>
-              )}
-
-              {(outputMode === "full" || outputMode === "agent") && prText && (
-                <div style={{ marginBottom: 20 }}>
-                  <div style={{ fontWeight: 700, fontSize: 13, background: "#f8f7f4", padding: "7px 12px", borderLeft: "4px solid #e85d26", borderRadius: "0 6px 6px 0", marginBottom: 10 }}>自己PR</div>
-                  <div style={{ fontSize: 13, lineHeight: 1.9, whiteSpace: "pre-wrap" }}>{prText}</div>
-                </div>
-              )}
-
-              {(data.summary.consulting || data.summary.management || data.summary.it) && (
-                <div style={{ marginBottom: 20 }}>
-                  <div style={{ fontWeight: 700, fontSize: 13, background: "#f8f7f4", padding: "7px 12px", borderLeft: "4px solid #e85d26", borderRadius: "0 6px 6px 0", marginBottom: 10 }}>スキルサマリ</div>
-                  {[["コンサルティングスキル", data.summary.consulting],["マネジメントスキル", data.summary.management],["ITスキル", data.summary.it]].filter(([,v]) => v).map(([l,v]) => (
-                    <div key={l} style={{ marginBottom: 12 }}>
-                      <div style={{ fontWeight: 700, fontSize: 12, color: "#e85d26", marginBottom: 4 }}>【{l}】</div>
-                      <div style={{ fontSize: 13, lineHeight: 1.9, whiteSpace: "pre-wrap" }}>{v}</div>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              <div style={{ marginBottom: 20 }}>
-                <div style={{ fontWeight: 700, fontSize: 13, background: "#f8f7f4", padding: "7px 12px", borderLeft: "4px solid #e85d26", borderRadius: "0 6px 6px 0", marginBottom: 10 }}>技術スタック</div>
-                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
-                  <tbody>
-                    {[["言語",data.tech.language],["FW",data.tech.framework],["DB",data.tech.db],["OS",data.tech.os],["クラウド",data.tech.cloud],["AI/ML",data.tech.ai],["ツール",[...data.tech.tools,...(data.tech.other?[data.tech.other]:[])]]]
-                      .filter(([,v]) => (v as string[]).length > 0)
-                      .map(([l,v]) => (
-                        <tr key={l as string} style={{ borderBottom: "1px solid #f5f3ef" }}>
-                          <td style={{ padding: "7px 10px", fontWeight: 600, color: "#666", width: 80 }}>{l as string}</td>
-                          <td style={{ padding: "7px 10px" }}>{(v as string[]).join("　/　")}</td>
-                        </tr>
-                      ))}
-                  </tbody>
-                </table>
-              </div>
-
-              {outputMode !== "agent" && data.projects.some(p => p.title) && (
-                <div style={{ marginBottom: 20 }}>
-                  <div style={{ fontWeight: 700, fontSize: 13, background: "#f8f7f4", padding: "7px 12px", borderLeft: "4px solid #e85d26", borderRadius: "0 6px 6px 0", marginBottom: 10 }}>職務経歴</div>
-                  {data.projects.filter(p => p.title).map((p, i) => (
-                    <div key={i} style={{ background: "#f9f8f6", border: "1px solid #ede9e3", borderRadius: 8, padding: 16, marginBottom: 12 }}>
-                      <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 8 }}>{p.title}</div>
-                      <div style={{ display: "flex", gap: 16, fontSize: 12, color: "#888", marginBottom: 8, flexWrap: "wrap" }}>
-                        {p.from && <span>📅 {p.from} 〜 {p.present ? "現在" : p.to}</span>}
-                        {p.position && <span>👤 {p.position}</span>}
-                        {p.scale && <span>👥 {p.scale}</span>}
-                      </div>
-                      {p.overview && <div style={{ fontSize: 12, marginBottom: 8, lineHeight: 1.8 }}>{p.overview}</div>}
-                      {p.phase.length > 0 && <div style={{ fontSize: 12, color: "#888", marginBottom: 8 }}>担当フェーズ：{p.phase.join("　/　")}</div>}
-                      {p.work && <div style={{ fontSize: 13, lineHeight: 1.9, whiteSpace: "pre-wrap" }}>{p.work}</div>}
-                      {p.env && <div style={{ fontSize: 12, color: "#777", background: "#f0ede8", padding: "8px 12px", borderRadius: 6, whiteSpace: "pre-wrap", marginTop: 8 }}>{p.env}</div>}
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {(outputMode === "full" || outputMode === "agent") && (
+              {/* ヘッダー */}
+              <div style={{ background: "#1a1a2e", padding: "28px 32px", display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: 16, flexWrap: "wrap" as const }}>
                 <div>
-                  <div style={{ fontWeight: 700, fontSize: 13, background: "#f8f7f4", padding: "7px 12px", borderLeft: "4px solid #e85d26", borderRadius: "0 6px 6px 0", marginBottom: 10 }}>稼働条件</div>
-                  <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
-                    <tbody>
-                      {[["希望単価", (data.working.rateMin || data.working.rateMax) ? `${data.working.rateMin ? data.working.rateMin + "円" : ""}〜${data.working.rateMax ? data.working.rateMax + "円" : ""}（${data.working.rateUnit}）` : ""],["稼働日数",data.working.daysPerWeek],["稼働時間",data.working.hoursPerDay],["稼働曜日",data.working.weekdays.join("、")],["リモート",data.working.remote],["勤務エリア",data.working.location],["参画可能時期",data.working.available],["希望職種",data.working.jobType.join("　/　")]]
-                        .filter(([,v]) => v)
-                        .map(([l,v]) => (
-                          <tr key={l} style={{ borderBottom: "1px solid #f5f3ef" }}>
-                            <td style={{ padding: "7px 10px", fontWeight: 600, color: "#666", width: 110 }}>{l}</td>
-                            <td style={{ padding: "7px 10px" }}>{v}</td>
-                          </tr>
-                        ))}
-                    </tbody>
-                  </table>
+                  <div style={{ fontSize: 10, letterSpacing: "0.18em", textTransform: "uppercase" as const, color: "rgba(255,255,255,0.4)", marginBottom: 6 }}>
+                    {outputMode === "skill" ? "Skill Sheet" : outputMode === "agent" ? "Career Summary" : "Curriculum Vitae"}
+                  </div>
+                  <div style={{ fontSize: 26, fontWeight: 500, color: "#fff", marginBottom: 3 }}>{data.basic.name || "（氏名未入力）"}</div>
+                  <div style={{ fontSize: 11, color: "rgba(255,255,255,0.4)", letterSpacing: "0.1em" }}>
+                    {[data.basic.age && `${data.basic.age}歳`, data.basic.gender !== "答えたくない" ? data.basic.gender : "", data.basic.station && `${data.basic.station}（${data.basic.line}）`].filter(Boolean).join("　｜　")}
+                  </div>
                 </div>
-              )}
+                <div style={{ display: "flex", flexDirection: "column" as const, alignItems: "flex-end", gap: 5 }}>
+                  {data.working.jobType.slice(0, 3).map((jt: string) => (
+                    <span key={jt} style={{ fontSize: 10, padding: "3px 10px", borderRadius: 20, border: "0.5px solid rgba(255,255,255,0.25)", color: "rgba(255,255,255,0.65)" }}>{jt}</span>
+                  ))}
+                </div>
+              </div>
+              <div style={{ height: 4, background: "linear-gradient(90deg, #e85d26 0%, #f59e0b 100%)" }} />
+
+              {/* 2カラムボディ */}
+              <div style={{ display: "flex" }}>
+
+                {/* サイドバー */}
+                <div style={{ width: 200, flexShrink: 0, background: "#f9f8f6", padding: "24px 18px", borderRight: "0.5px solid #ece9e3" }}>
+
+                  {/* 基本情報 */}
+                  <div style={{ marginBottom: 22 }}>
+                    <div style={{ fontSize: 9, fontWeight: 500, letterSpacing: "0.16em", textTransform: "uppercase" as const, color: "#e85d26", marginBottom: 10, display: "flex", alignItems: "center", gap: 6 }}>
+                      基본情報<div style={{ flex: 1, height: 1, background: "#f0ede8" }} />
+                    </div>
+                    {data.basic.education && <div style={{ fontSize: 11, color: "#555", lineHeight: 1.7, marginBottom: 3 }}><span style={{ color: "#888", fontSize: 10 }}>学歴　</span>{data.basic.education}</div>}
+                    {data.basic.station && <div style={{ fontSize: 11, color: "#555", lineHeight: 1.7, marginBottom: 3 }}><span style={{ color: "#888", fontSize: 10 }}>最寄　</span>{data.basic.station}</div>}
+                    {(data.working.rateMin || data.working.rateMax) && <div style={{ fontSize: 11, color: "#555", lineHeight: 1.7, marginBottom: 3 }}><span style={{ color: "#888", fontSize: 10 }}>単価　</span>{data.working.rateMin}〜{data.working.rateMax}円/{data.working.rateUnit === "月額" ? "月" : "時"}</div>}
+                    {data.working.daysPerWeek && <div style={{ fontSize: 11, color: "#555", lineHeight: 1.7, marginBottom: 3 }}><span style={{ color: "#888", fontSize: 10 }}>稼働　</span>{data.working.daysPerWeek}</div>}
+                    {data.working.remote && <div style={{ fontSize: 11, color: "#555", lineHeight: 1.7 }}><span style={{ color: "#888", fontSize: 10 }}>形態　</span>{data.working.remote}</div>}
+                  </div>
+
+                  {/* 技術スタック */}
+                  {Object.entries(data.tech).some(([k, v]) => k !== "other" && Array.isArray(v) && (v as string[]).length > 0) && (
+                    <div style={{ marginBottom: 22 }}>
+                      <div style={{ fontSize: 9, fontWeight: 500, letterSpacing: "0.16em", textTransform: "uppercase" as const, color: "#e85d26", marginBottom: 10, display: "flex", alignItems: "center", gap: 6 }}>
+                        Skills<div style={{ flex: 1, height: 1, background: "#f0ede8" }} />
+                      </div>
+                      <div style={{ display: "flex", flexWrap: "wrap" as const, gap: 3 }}>
+                        {[...data.tech.language, ...data.tech.framework, ...data.tech.db, ...data.tech.cloud, ...data.tech.ai.slice(0, 4)].filter(Boolean).map((sk: string) => (
+                          <span key={sk} style={{ fontSize: 9, padding: "2px 7px", borderRadius: 4, background: "#fff3ee", border: "0.5px solid #ffd0c0", color: "#c0440e" }}>{sk}</span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* 資格 */}
+                  {data.basic.certifications && (
+                    <div>
+                      <div style={{ fontSize: 9, fontWeight: 500, letterSpacing: "0.16em", textTransform: "uppercase" as const, color: "#e85d26", marginBottom: 10, display: "flex", alignItems: "center", gap: 6 }}>
+                        資格<div style={{ flex: 1, height: 1, background: "#f0ede8" }} />
+                      </div>
+                      {data.basic.certifications.split(/[、,，
+]/).filter(Boolean).map((c: string) => (
+                        <div key={c} style={{ fontSize: 10, color: "#555", padding: "4px 0", borderBottom: "0.5px solid #f0ede8", lineHeight: 1.5 }}>{c.trim()}</div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* メインコンテンツ */}
+                <div style={{ flex: 1, padding: "24px 26px", minWidth: 0 }}>
+
+                  {/* 自己PR */}
+                  {(outputMode === "full" || outputMode === "agent") && prText && (
+                    <div style={{ marginBottom: 22 }}>
+                      <div style={{ fontSize: 10, fontWeight: 500, letterSpacing: "0.12em", textTransform: "uppercase" as const, color: "#e85d26", display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+                        自己PR<div style={{ flex: 1, height: 1, background: "#f0ede8" }} />
+                      </div>
+                      <div style={{ background: "#f9f8f6", borderRadius: 8, padding: "14px 16px", fontSize: 12, color: "#333", lineHeight: 1.9, borderLeft: "3px solid #e85d26", whiteSpace: "pre-wrap" as const }}>{prText}</div>
+                    </div>
+                  )}
+
+                  {/* スキルサマリ */}
+                  {(data.summary.consulting || data.summary.management || (data.summary.it && data.summary.it !== "経験なし・該当なし")) && (
+                    <div style={{ marginBottom: 22 }}>
+                      <div style={{ fontSize: 10, fontWeight: 500, letterSpacing: "0.12em", textTransform: "uppercase" as const, color: "#e85d26", display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+                        スキルサマリ<div style={{ flex: 1, height: 1, background: "#f0ede8" }} />
+                      </div>
+                      {[["コンサルティング", data.summary.consulting],["マネジメント", data.summary.management],["ITスキル", data.summary.it]].filter(([,v]) => v && v !== "経験なし・該当なし").map(([l,v]) => (
+                        <div key={l} style={{ marginBottom: 10 }}>
+                          <div style={{ fontSize: 10, fontWeight: 500, color: "#e85d26", marginBottom: 3 }}>▍{l}</div>
+                          <div style={{ fontSize: 12, lineHeight: 1.8, color: "#444", whiteSpace: "pre-wrap" as const }}>{v}</div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* 職務経歴 タイムライン */}
+                  {outputMode !== "skill" && data.projects.some(p => p.title) && (
+                    <div style={{ marginBottom: 22 }}>
+                      <div style={{ fontSize: 10, fontWeight: 500, letterSpacing: "0.12em", textTransform: "uppercase" as const, color: "#e85d26", display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+                        職務経歴<div style={{ flex: 1, height: 1, background: "#f0ede8" }} />
+                      </div>
+                      <div style={{ position: "relative", paddingLeft: 20 }}>
+                        <div style={{ position: "absolute", left: 6, top: 6, bottom: 0, width: 1, background: "#ece9e3" }} />
+                        {data.projects.filter(p => p.title).map((p, i) => (
+                          <div key={i} style={{ position: "relative", marginBottom: 18 }}>
+                            <div style={{ position: "absolute", left: -20, top: 5, width: 12, height: 12, borderRadius: "50%", background: "#fff", border: "2px solid #e85d26" }} />
+                            <div style={{ fontSize: 10, color: "#e85d26", fontWeight: 500, marginBottom: 2 }}>
+                              {p.from} 〜 {p.present ? "現在" : p.to}
+                              {p.position && <span style={{ marginLeft: 8, color: "#888" }}>{p.position}</span>}
+                            </div>
+                            <div style={{ fontSize: 13, fontWeight: 500, color: "#1a1a2e", marginBottom: 5 }}>{p.title}</div>
+                            {p.overview && <div style={{ fontSize: 11, color: "#666", lineHeight: 1.7, marginBottom: 5 }}>{p.overview}</div>}
+                            <div style={{ display: "flex", flexWrap: "wrap" as const, gap: 4, marginBottom: p.env ? 5 : 0 }}>
+                              {Array.isArray(p.phase) && p.phase.map((ph: string) => (
+                                <span key={ph} style={{ fontSize: 9, padding: "2px 7px", borderRadius: 3, background: "#f0ede8", color: "#666", border: "0.5px solid #e0ddd8" }}>{ph}</span>
+                              ))}
+                              {p.scale && <span style={{ fontSize: 9, padding: "2px 7px", borderRadius: 3, background: "#f0ede8", color: "#666", border: "0.5px solid #e0ddd8" }}>{p.scale}</span>}
+                            </div>
+                            {p.env && <div style={{ fontSize: 10, color: "#777", background: "#f5f3ef", padding: "6px 10px", borderRadius: 5, whiteSpace: "pre-wrap" as const, marginTop: 4 }}>{p.env}</div>}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* 稼働条件 */}
+                  {(outputMode === "full" || outputMode === "agent") && (data.working.rateMin || data.working.daysPerWeek || data.working.jobType.length > 0) && (
+                    <div>
+                      <div style={{ fontSize: 10, fontWeight: 500, letterSpacing: "0.12em", textTransform: "uppercase" as const, color: "#e85d26", display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+                        稼働条件<div style={{ flex: 1, height: 1, background: "#f0ede8" }} />
+                      </div>
+                      <div style={{ display: "grid", gridTemplateColumns: "90px 1fr", fontSize: 12, rowGap: 6 }}>
+                        {[["希望単価", (data.working.rateMin || data.working.rateMax) ? `${data.working.rateMin ? data.working.rateMin + "円" : ""}〜${data.working.rateMax ? data.working.rateMax + "円" : ""}（${data.working.rateUnit}）` : ""],["稼働日数", data.working.daysPerWeek],["稼働曜日", Array.isArray(data.working.weekdays) ? data.working.weekdays.join("・") : ""],["リモート", data.working.remote],["勤務エリア", data.working.location],["参画可能時期", data.working.available],["希望職種", Array.isArray(data.working.jobType) ? data.working.jobType.join("　/　") : ""]].filter(([,v]) => v).map(([l,v]) => (
+                          <>
+                            <div key={l + "_l"} style={{ color: "#888", fontSize: 11 }}>{l}</div>
+                            <div key={l + "_v"} style={{ color: "#333" }}>{v}</div>
+                          </>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                </div>
+              </div>
             </div>
 
             {/* 出力ボタン群 */}
