@@ -5,10 +5,10 @@ import { useRouter } from "next/navigation";
 
 const STEPS = [
   { label: "基本情報", icon: "👤" },
-  { label: "自己PR", icon: "✍️" },
+  { label: "職務経歴", icon: "💼" },
   { label: "スキルサマリ", icon: "📋" },
   { label: "技術スタック", icon: "⚙️" },
-  { label: "職務経歴", icon: "💼" },
+  { label: "自己PR", icon: "✍️" },
   { label: "稼働条件", icon: "📅" },
   { label: "プレビュー・出力", icon: "📄" },
 ];
@@ -115,15 +115,14 @@ export default function CareerBuilderPage() {
       if (!data.basic.name.trim()) errs.name = "氏名は必須です";
       if (!data.basic.furigana.trim()) errs.furigana = "フリガナは必須です";
       else if (!/^[ァ-ヶー\s]+$/.test(data.basic.furigana.trim())) errs.furigana = "フリガナはカタカナで入力してください";
-      if (data.basic.age && (isNaN(Number(data.basic.age)) || Number(data.basic.age) < 15 || Number(data.basic.age) > 80)) errs.age = "年齢は15〜80の数字で入力してください";
+      if (data.basic.age && (isNaN(Number(data.basic.age)) || Number(data.basic.age) < 15)) errs.age = "年齢は15以上の数字で入力してください";
     }
     if (targetStep === 1) {
-      if (!data.pr.short.trim()) errs.pr_short = "短文の自己PRは必須です";
-      else if (data.pr.short.length > 200) errs.pr_short = "短文は200文字以内で入力してください";
+      if (data.projects.length === 0 || !data.projects[0].title.trim())
+        errs.projects = "職務経歴を少なくとも1件入力してください";
     }
     if (targetStep === 2) {
-      if (!data.summary.it.trim() && !data.summary.consulting.trim() && !data.summary.management.trim())
-        errs.summary = "スキルサマリは少なくとも1つ入力してください";
+      // スキルサマリは任意（スキップ可能）
     }
     if (targetStep === 3) {
       const allTech = Object.values(data.tech).flat();
@@ -131,8 +130,7 @@ export default function CareerBuilderPage() {
         errs.tech = "技術スタックを少なくとも1つ選択してください";
     }
     if (targetStep === 4) {
-      if (data.projects.length === 0 || !data.projects[0].title.trim())
-        errs.projects = "職務経歴を少なくとも1件入力してください";
+      // 自己PRはAI生成後に確認するので任意
     }
     if (targetStep === 5) {
       if (!data.working.rateMin && !data.working.rateMax) errs.rate = "希望単価を入力してください";
@@ -477,9 +475,58 @@ export default function CareerBuilderPage() {
           </div>
         )}
 
-        {/* STEP 1: 自己PR */}
-        {step === 1 && (
+        {/* STEP 4: 自己PR */}
+        {step === 4 && (
           <div>
+            <div style={{ ...s.card, marginBottom: 16, background: "#fff8f5", border: "1px solid #ffd0c0" }}>
+              <div style={s.sectionTitle}><div style={s.bar} />AIで自己PRを生成・添削</div>
+              <div style={s.desc}>入力済みの職務経歴・スキルを元にGemini AIが自己PRを自動生成します</div>
+              <div style={{ display: "flex", gap: 10, flexWrap: "wrap" as const }}>
+                <button
+                  style={{ ...s.btn, ...s.btnPrimary, fontSize: 13, padding: "10px 20px" }}
+                  onClick={async () => {
+                    const careerSummary = [
+                      data.projects.map(p => p.title + " " + p.work).join(" "),
+                      Object.values(data.tech).flat().join("、"),
+                      data.summary.it, data.summary.consulting, data.summary.management,
+                    ].filter(Boolean).join("\n");
+                    const prompt = `以下の職務経歴・スキルを元に、副業・フリーランス向けの自己PRを3種類（短文100字、中文400字、長文800字）生成してください。\n\n${careerSummary}\n\n以下の形式で返してください：\n[短文]\n（100文字程度）\n\n[中文]\n（400文字程度）\n\n[長文]\n（800文字程度）`;
+                    try {
+                      const url = \`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=\${process.env.NEXT_PUBLIC_GEMINI_API_KEY}\`;
+                      const res = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }) });
+                      const json = await res.json();
+                      const text = json.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
+                      const short = text.match(/\[短文\]\s*([\s\S]*?)(?=\[中文\]|$)/)?.[1]?.trim() ?? "";
+                      const medium = text.match(/\[中文\]\s*([\s\S]*?)(?=\[長文\]|$)/)?.[1]?.trim() ?? "";
+                      const long = text.match(/\[長文\]\s*([\s\S]*?)$/)?.[1]?.trim() ?? "";
+                      if (short) update("pr", "short", short);
+                      if (medium) update("pr", "medium", medium);
+                      if (long) update("pr", "long", long);
+                    } catch (e) { alert("AI生成に失敗しました。しばらく待ってから再試行してください。"); }
+                  }}
+                >✨ AIで自己PRを生成</button>
+                <button
+                  style={{ ...s.btn, ...s.btnGhost, fontSize: 13, padding: "10px 20px" }}
+                  onClick={async () => {
+                    if (!data.pr.short && !data.pr.medium && !data.pr.long) { alert("まず自己PRを入力してください"); return; }
+                    const prompt = `以下の自己PRを副業・フリーランス向けに改善・添削してください。より具体的で魅力的な表現に改善し、同じ形式で返してください。\n\n[短文]\n${data.pr.short}\n\n[中文]\n${data.pr.medium}\n\n[長文]\n${data.pr.long}`;
+                    try {
+                      const url = \`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=\${process.env.NEXT_PUBLIC_GEMINI_API_KEY}\`;
+                      const res = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }) });
+                      const json = await res.json();
+                      const text = json.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
+                      const short = text.match(/\[短文\]\s*([\s\S]*?)(?=\[中文\]|$)/)?.[1]?.trim() ?? "";
+                      const medium = text.match(/\[中文\]\s*([\s\S]*?)(?=\[長文\]|$)/)?.[1]?.trim() ?? "";
+                      const long = text.match(/\[長文\]\s*([\s\S]*?)$/)?.[1]?.trim() ?? "";
+                      if (short) update("pr", "short", short);
+                      if (medium) update("pr", "medium", medium);
+                      if (long) update("pr", "long", long);
+                    } catch (e) { alert("AI添削に失敗しました。しばらく待ってから再試行してください。"); }
+                  }}
+                >📝 AIで添削・改善</button>
+              </div>
+              <div style={{ fontSize: 11, color: "#e85d26", marginTop: 8 }}>※ STEP2・3・4の入力が多いほど精度が上がります</div>
+            </div>
             {[["short","短文（100文字目安）","クラウドワークス・ランサーズ向け",3,100],["medium","中文（400文字目安）","レバテック・ビズリーチ向け",7,400],["long","長文（800文字目安）","LinkedIn・Wantedly・職務経歴書フル版向け",14,800]].map(([f,l,hint,rows,target]) => (
               <div style={s.card} key={f as string}>
                 <div style={s.sectionTitle}><div style={s.bar} />{l as string}</div>
@@ -506,11 +553,25 @@ export default function CareerBuilderPage() {
         {/* STEP 2: スキルサマリ */}
         {step === 2 && (
           <div>
-            {[["consulting","コンサルティングスキル","顧客折衝・要件定義・提案・業務改善などの経験"],["management","マネジメントスキル","PM・PL経験、チーム規模、管理業務などを具体的に"]].map(([f,l,hint]) => (
+            {[
+              ["consulting","コンサルティングスキル","顧客折衝・要件定義・提案・業務改善などの経験","・顧客折衝・要件定義の経験あり\n・提案書作成・プレゼン経験あり\n・業務改善プロジェクトを主導"],
+              ["management","マネジメントスキル","PM・PL経験、チーム規模、管理業務などを具体的に","・PLとして5名チームをマネジメント\n・工数管理・進捗報告を担当\n・ベンダーコントロール経験あり"],
+            ].map(([f,l,hint,ph]) => (
               <div style={s.card} key={f}>
                 <div style={s.sectionTitle}><div style={s.bar} />{l}</div>
                 <div style={s.desc}>{hint}</div>
-                <textarea style={{ ...s.inp, minHeight: 160 }} placeholder={`・〇〇の経験\n・〇〇を担当`} value={(data.summary as any)[f]} onChange={e => update("summary", f, e.target.value)} />
+                <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
+                  {["経験なし・該当なし"].map(opt => (
+                    <div key={opt}
+                      style={{ ...s.tag, ...((data.summary as any)[f] === opt ? s.tagOn : s.tagOff) }}
+                      onClick={() => update("summary", f, (data.summary as any)[f] === opt ? "" : opt)}>
+                      {(data.summary as any)[f] === opt && <span style={{ fontSize: 10 }}>✓</span>}{opt}
+                    </div>
+                  ))}
+                </div>
+                {(data.summary as any)[f] !== "経験なし・該当なし" && (
+                  <textarea style={{ ...s.inp, minHeight: 140 }} placeholder={ph as string} value={(data.summary as any)[f]} onChange={e => update("summary", f, e.target.value)} />
+                )}
               </div>
             ))}
 
@@ -588,8 +649,8 @@ export default function CareerBuilderPage() {
           </div>
         )}
 
-        {/* STEP 4: 職務経歴 */}
-        {step === 4 && (
+        {/* STEP 1: 職務経歴 */}
+        {step === 1 && (
           <div>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
               <div style={{ fontSize: 15, fontWeight: 700 }}>職務経歴</div>
