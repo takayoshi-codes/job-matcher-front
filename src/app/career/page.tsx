@@ -365,7 +365,7 @@ export default function CareerBuilderPage() {
                           onClick={() => {
                             const cur = data.summary.it;
                             const next = on
-                              ? cur.replace(new RegExp(`・?${tag}`), "").replace(/^・/, "")
+                              ? cur.split("・").filter((t: string) => t !== tag).join("・")
                               : cur ? cur + "・" + tag : tag;
                             update("summary", "it", next);
                           }}>
@@ -380,8 +380,7 @@ export default function CareerBuilderPage() {
               <div style={{ marginTop: 8 }}>
                 <div style={{ fontSize: 11, color: "#888", marginBottom: 6 }}>追記・詳細（自由記述）</div>
                 <textarea style={{ ...s.inp, minHeight: 100 }}
-                  placeholder={"例：金融系基幹システムの開発経験5年。要件定義〜運用保守まで一貫して担当。
-AWS上でのマイクロサービス設計・構築が得意。"}
+                  placeholder={"例：金融系基幹システムの開発経験5年。要件定義〜運用保守まで一貫して担当。\nAWS上でのマイクロサービス設計・構築が得意。"}
                   value={data.summary.it}
                   onChange={e => update("summary", "it", e.target.value)}
                 />
