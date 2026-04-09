@@ -105,32 +105,57 @@ export default function CareerBuilderPage() {
   const [saved, setSaved] = useState(false);
   const [outputMode, setOutputMode] = useState("full");
 
-  // 起動時にlocalStorageから復元
+  // 起動時にlocalStorageから復元（完全なディープマージ）
   useEffect(() => {
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        // 古いデータとinitialDataをマージして新フィールドのundefinedを防ぐ
-        setData(prev => ({
-          ...prev,
-          ...parsed,
-          projects: (parsed.projects ?? prev.projects).map((p: any) => ({
-            ...p,
-            phase: Array.isArray(p.phase) ? p.phase : [],
-          })),
-          working: {
-            ...prev.working,
-            ...(parsed.working ?? {}),
-            weekdays: Array.isArray(parsed.working?.weekdays) ? parsed.working.weekdays : [],
-            daysPerWeek: parsed.working?.daysPerWeek ?? parsed.working?.days ?? "",
-            hoursPerDay: parsed.working?.hoursPerDay ?? "",
-            rateMin: parsed.working?.rateMin ?? "",
-            rateMax: parsed.working?.rateMax ?? "",
-            jobType: Array.isArray(parsed.working?.jobType) ? parsed.working.jobType : [],
-          }
-        }));
-      }
+      if (!stored) return;
+      const parsed = JSON.parse(stored);
+      const safe = {
+        basic: { ...initialData.basic, ...(parsed.basic ?? {}) },
+        pr: { ...initialData.pr, ...(parsed.pr ?? {}) },
+        summary: { ...initialData.summary, ...(parsed.summary ?? {}) },
+        tech: {
+          ...initialData.tech,
+          ...(parsed.tech ?? {}),
+          language: Array.isArray(parsed.tech?.language) ? parsed.tech.language : [],
+          framework: Array.isArray(parsed.tech?.framework) ? parsed.tech.framework : [],
+          db: Array.isArray(parsed.tech?.db) ? parsed.tech.db : [],
+          os: Array.isArray(parsed.tech?.os) ? parsed.tech.os : [],
+          cloud: Array.isArray(parsed.tech?.cloud) ? parsed.tech.cloud : [],
+          ai: Array.isArray(parsed.tech?.ai) ? parsed.tech.ai : [],
+          tools: Array.isArray(parsed.tech?.tools) ? parsed.tech.tools : [],
+          sns: Array.isArray(parsed.tech?.sns) ? parsed.tech.sns : [],
+          video: Array.isArray(parsed.tech?.video) ? parsed.tech.video : [],
+          other: parsed.tech?.other ?? "",
+        },
+        projects: Array.isArray(parsed.projects)
+          ? parsed.projects.map((p: any) => ({
+              ...p,
+              phase: Array.isArray(p.phase) ? p.phase : [],
+              from: p.from ?? "",
+              to: p.to ?? "",
+              present: p.present ?? false,
+              title: p.title ?? "",
+              overview: p.overview ?? "",
+              position: p.position ?? "",
+              scale: p.scale ?? "",
+              work: p.work ?? "",
+              env: p.env ?? "",
+            }))
+          : initialData.projects,
+        working: {
+          ...initialData.working,
+          ...(parsed.working ?? {}),
+          weekdays: Array.isArray(parsed.working?.weekdays) ? parsed.working.weekdays : [],
+          jobType: Array.isArray(parsed.working?.jobType) ? parsed.working.jobType : [],
+          daysPerWeek: parsed.working?.daysPerWeek ?? parsed.working?.days ?? "",
+          hoursPerDay: parsed.working?.hoursPerDay ?? "",
+          rateMin: parsed.working?.rateMin ?? "",
+          rateMax: parsed.working?.rateMax ?? "",
+        },
+      };
+      setData(safe);
     } catch { /* 無視 */ }
   }, []);
 
