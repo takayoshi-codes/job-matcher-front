@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import SiteNav from "@/components/SiteNav";
 
@@ -102,6 +102,8 @@ export default function CareerBuilderPage() {
   const [data, setData] = useState(initialData);
   const [saved, setSaved] = useState(false);
   const [outputMode, setOutputMode] = useState("full");
+  const [importMsg, setImportMsg] = useState("");
+  const importRef = useRef<HTMLInputElement>(null);
 
   // 起動時にlocalStorageから復元
   useEffect(() => {
@@ -225,6 +227,81 @@ export default function CareerBuilderPage() {
     a.click();
   };
 
+  // CSVインポート
+  const importCSV = (file: File) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const text = e.target?.result as string;
+        const clean = text.replace(/^\uFEFF/, "");
+        const parseRow = (row: string): string[] => {
+          const result: string[] = [];
+          let cur = "", inQ = false;
+          for (let i = 0; i < row.length; i++) {
+            const c = row[i];
+            if (c === '"') {
+              if (inQ && row[i + 1] === '"') { cur += '"'; i++; }
+              else inQ = !inQ;
+            } else if (c === ',' && !inQ) { result.push(cur); cur = ""; }
+            else cur += c;
+          }
+          result.push(cur);
+          return result;
+        };
+        const rows = clean.split("\n").filter(r => r.trim()).map(parseRow);
+        const map: Record<string, Record<string, string>> = {};
+        rows.slice(1).forEach(([section, item, value]) => {
+          if (!section) return;
+          if (!map[section]) map[section] = {};
+          map[section][item] = value ?? "";
+        });
+        setData(prev => {
+          const next = { ...prev };
+          if (map["基本情報"]) {
+            const b = map["基本情報"];
+            const stationRaw = b["最寄駅"] ?? "";
+            const stationMatch = stationRaw.match(/^(.+?)（(.+?)）$/);
+            next.basic = { ...prev.basic, name: b["氏名"] ?? prev.basic.name, furigana: b["フリガナ"] ?? prev.basic.furigana, age: b["年齢"] ?? prev.basic.age, gender: b["性別"] ?? prev.basic.gender, station: stationMatch ? stationMatch[1] : stationRaw, line: stationMatch ? stationMatch[2] : prev.basic.line, education: b["学歴"] ?? prev.basic.education, certifications: b["資格"] ?? prev.basic.certifications };
+          }
+          if (map["自己PR"]) {
+            next.pr = { short: map["自己PR"]["短文"] ?? prev.pr.short, medium: map["自己PR"]["中文"] ?? prev.pr.medium, long: map["自己PR"]["長文"] ?? prev.pr.long };
+          }
+          if (map["スキルサマリ"]) {
+            next.summary = { consulting: map["スキルサマリ"]["コンサルスキル"] ?? prev.summary.consulting, management: map["スキルサマリ"]["マネジメントスキル"] ?? prev.summary.management, it: map["スキルサマリ"]["ITスキル"] ?? prev.summary.it };
+          }
+          if (map["技術スタック"]) {
+            const t = map["技術スタック"];
+            const split = (v: string) => v ? v.split("、").filter(Boolean) : [];
+            next.tech = { language: split(t["言語"]), framework: split(t["FW"]), db: split(t["DB"]), os: split(t["OS"]), cloud: split(t["クラウド"]), ai: split(t["AI/ML"]), tools: split(t["ツール"]), other: t["その他"] ?? "" };
+          }
+          const projectKeys = Object.keys(map).filter(k => k.startsWith("職務経歴")).sort();
+          if (projectKeys.length > 0) {
+            next.projects = projectKeys.map(key => {
+              const p = map[key];
+              const periodRaw = p["期間"] ?? "";
+              const periodMatch = periodRaw.match(/^(.+?) 〜 (.+)$/);
+              const to = periodMatch ? periodMatch[2] : "";
+              return { from: periodMatch ? periodMatch[1] : "", to: to === "現在" ? "" : to, present: to === "現在", title: p["案件名"] ?? "", overview: p["案件概要"] ?? "", position: p["ポジション"] ?? "", scale: p["規模"] ?? "", phase: p["担当フェーズ"] ? p["担当フェーズ"].split("、").filter(Boolean) : [], work: p["業務内容"] ?? "", env: p["開発環境"] ?? "" };
+            });
+          }
+          if (map["稼働条件"]) {
+            const w = map["稼働条件"];
+            const rateRaw = w["希望単価"] ?? "";
+            const rateMatch = rateRaw.match(/^(\d*)円?〜(\d*)円?（(.+?)）$/);
+            next.working = { ...prev.working, rateMin: rateMatch ? rateMatch[1] : prev.working.rateMin, rateMax: rateMatch ? rateMatch[2] : prev.working.rateMax, rateUnit: rateMatch ? rateMatch[3] : prev.working.rateUnit, daysPerWeek: w["稼働日数"] ?? prev.working.daysPerWeek, hoursPerDay: w["稼働時間"] ?? prev.working.hoursPerDay, weekdays: w["稼働曜日"] ? w["稼働曜日"].split("、").filter(Boolean) : prev.working.weekdays, remote: w["リモート希望"] ?? prev.working.remote, location: w["勤務可能エリア"] ?? prev.working.location, available: w["参画可能時期"] ?? prev.working.available, jobType: w["希望職種"] ? w["希望職種"].split("、").filter(Boolean) : prev.working.jobType };
+          }
+          return next;
+        });
+        setImportMsg("✓ CSVを読み込みました");
+        setTimeout(() => setImportMsg(""), 3000);
+      } catch {
+        setImportMsg("読み込みに失敗しました");
+        setTimeout(() => setImportMsg(""), 3000);
+      }
+    };
+    reader.readAsText(file, "utf-8");
+  };
+
   // 求人マッチング診断へ遷移（localStorageに保存済みなのでそのまま遷移）
   const goToMatcher = () => {
     router.push("/");
@@ -276,6 +353,20 @@ export default function CareerBuilderPage() {
 
         {/* STEP 0: 基本情報 */}
         {step === 0 && (
+          <>
+          <div style={{ background: "#fff", border: "1px solid #ede9e3", borderRadius: 12, padding: "16px 20px", marginBottom: 16, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, boxShadow: "0 1px 4px rgba(0,0,0,0.06)" }}>
+            <div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: "#1a1a1a", marginBottom: 2 }}>📥 CSVインポート</div>
+              <div style={{ fontSize: 12, color: "#aaa" }}>以前エクスポートしたCSVを読み込むと、全項目が自動入力されます</div>
+              {importMsg && <div style={{ marginTop: 4, fontSize: 12, color: importMsg.startsWith("✓") ? "#16a34a" : "#dc2626", fontWeight: 600 }}>{importMsg}</div>}
+            </div>
+            <div style={{ flexShrink: 0 }}>
+              <input ref={importRef} type="file" accept=".csv" style={{ display: "none" }} onChange={e => { const f = e.target.files?.[0]; if (f) { importCSV(f); e.target.value = ""; } }} />
+              <button style={{ padding: "9px 20px", borderRadius: 8, border: "1.5px solid #e0ddd8", background: "#fff", color: "#555", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }} onClick={() => importRef.current?.click()}>
+                CSVを選択
+              </button>
+            </div>
+          </div>
           <div style={s.card}>
             <div style={s.sectionTitle}><div style={s.bar} />基本情報</div>
             <div style={s.desc}>プロフィールの基本情報を入力してください</div>
@@ -297,6 +388,7 @@ export default function CareerBuilderPage() {
               <textarea style={{ ...s.inp, minHeight: 60 }} placeholder="例：応用情報技術者、FP2級、AWS SAA、G検定" value={data.basic.certifications} onChange={e => update("basic", "certifications", e.target.value)} />
             </div>
           </div>
+          </>
         )}
 
         {/* STEP 1: 自己PR */}
@@ -812,10 +904,11 @@ export default function CareerBuilderPage() {
             </div>
 
             {/* 出力ボタン群 */}
-            <div style={{ display: "flex", gap: 10, marginBottom: 12 }}>
+            <div style={{ display: "flex", gap: 10, marginBottom: 8 }}>
               <button style={{ ...s.btn, ...s.btnPrimary, flex: 1 }} onClick={() => window.print()}>🖨　印刷・PDF保存</button>
-              <button style={{ ...s.btn, ...s.btnGhost, flex: 1 }} onClick={exportCSV}>📥 CSVエクスポート</button>
+              <button style={{ ...s.btn, ...s.btnGhost, flex: 1 }} onClick={exportCSV}>📤 CSVエクスポート</button>
             </div>
+
 
             {/* 求人マッチング診断へ */}
             <button
