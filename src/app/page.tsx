@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import type { JobInput, CareerInput, MatchResult } from "@/types";
 import ScoreGauge from "@/components/ScoreGauge";
+import SiteNav from "@/components/SiteNav";
 
 const STORAGE_KEY = "career_builder_data";
 
@@ -260,23 +261,12 @@ export default function Home() {
 
   return (
     <div style={s.wrap}>
-      <div style={s.header}>
-        <div style={s.headerInner}>
-          <div style={s.logo}>
-            <div style={s.logoIcon}>M</div>
-            <div>
-              <div style={{ fontSize: 16, fontWeight: 700, color: "#1a1a1a" }}>求人マッチング診断</div>
-              <div style={{ fontSize: 10, color: "#aaa" }}>Job Matching Analyzer</div>
-            </div>
-          </div>
-          <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-            <a href="/career" style={{ ...s.btn, ...s.btnGhost, padding: "8px 16px", fontSize: 13, textDecoration: "none" }}>✍️ Career Builder</a>
-            {step === "result" && (
-              <button style={{ ...s.btn, ...s.btnGhost, padding: "8px 16px", fontSize: 13 }} onClick={() => { setStep("input"); setResult(null); }}>← 診断をやり直す</button>
-            )}
-          </div>
+      <SiteNav />
+      {step === "result" && (
+        <div style={{ maxWidth: 1200, margin: "0 auto", padding: "12px 20px 0" }}>
+          <button style={{ ...s.btn, ...s.btnGhost, padding: "8px 16px", fontSize: 13 }} onClick={() => { setStep("input"); setResult(null); }}>← 診断をやり直す</button>
         </div>
-      </div>
+      )}
 
       <div style={s.main}>
         {step === "input" && (
@@ -293,7 +283,21 @@ export default function Home() {
               </div>
             )}
 
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 280px", gap: 16, marginBottom: 16 }}>
+            {/* Career Builder 未入力ガード */}
+            {!loadedFromStorage && (
+              <div style={{ background: "#fff7ed", border: "1.5px solid #fed7aa", borderRadius: 12, padding: "20px 24px", marginBottom: 20, display: "flex", alignItems: "center", gap: 16 }}>
+                <div style={{ fontSize: 28, flexShrink: 0 }}>🔒</div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 15, fontWeight: 700, color: "#92400e", marginBottom: 4 }}>Career Builder の入力が必要です</div>
+                  <div style={{ fontSize: 13, color: "#b45309", lineHeight: 1.7 }}>診断を行うには、まず Career Builder で職務経歴を入力してください。入力内容は自動で保存され、このページに反映されます。</div>
+                </div>
+                <a href="/career" style={{ ...s.btn, background: "#e85d26", color: "#fff", padding: "10px 20px", fontSize: 13, textDecoration: "none", flexShrink: 0 }}>
+                  ✍️ Career Builder へ →
+                </a>
+              </div>
+            )}
+
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 280px", gap: 16, marginBottom: 16 }}>
               {/* 求人票 */}
               <div style={s.card}>
                 <div style={s.cardTitle}><div style={s.cardTitleBar} />求人票</div>
@@ -329,49 +333,20 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* 職務経歴 */}
-              <div style={s.card}>
-                <div style={s.cardTitle}><div style={s.cardTitleBar} />職務経歴書</div>
-                <div style={s.cardDesc}>{loadedFromStorage ? "Career Builderのデータを読み込み済みです" : "Career BuilderのCSVをアップロード、または手入力"}</div>
-                {!loadedFromStorage && (
-                  <a href="/career" style={{ ...s.btn, background: "#1a1a1a", color: "#fff", width: "100%", marginBottom: 12, fontSize: 13, textDecoration: "none", display: "block", textAlign: "center" as const }}>
-                    ✍️ Career Builder で入力する →
-                  </a>
-                )}
-                <div style={{ ...s.uploaderArea, borderColor: dragging ? "#e85d26" : "#e0ddd8" }}
-                  onDragOver={e => { e.preventDefault(); setDragging(true); }} onDragLeave={() => setDragging(false)} onDrop={onDrop} onClick={() => fileRef.current?.click()}>
-                  <input ref={fileRef} type="file" accept=".csv" style={{ display: "none" }} onChange={e => { const f = e.target.files?.[0]; if (f) handleCSV(f); }} />
-                  <div style={{ fontSize: 20, marginBottom: 4 }}>📥</div>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: "#555" }}>CSVをドロップ</div>
-                  <div style={{ fontSize: 11, color: "#bbb", marginTop: 2 }}>またはクリックして選択</div>
-                </div>
-                <div style={{ marginBottom: 14 }}>
-                  <label style={s.label}>技術スタック</label>
-                  <textarea style={{ ...s.inp, minHeight: 60 }} placeholder="例：Python, Django, Next.js, PostgreSQL, AWS" value={career.skills} onChange={e => setCareer(p => ({ ...p, skills: e.target.value }))} />
-                </div>
-                <div style={{ marginBottom: 14 }}>
-                  <label style={s.label}>ITスキルサマリ</label>
-                  <textarea style={{ ...s.inp, minHeight: 80 }} placeholder="開発フェーズ経験・業界知見・得意技術など" value={career.summary_it} onChange={e => setCareer(p => ({ ...p, summary_it: e.target.value }))} />
-                </div>
-                <div style={{ marginBottom: 14 }}>
-                  <label style={s.label}>コンサルティング・マネジメントスキル</label>
-                  <textarea style={{ ...s.inp, minHeight: 60 }} placeholder="顧客折衝・PM経験など" value={career.summary_consulting} onChange={e => setCareer(p => ({ ...p, summary_consulting: e.target.value }))} />
-                </div>
-                <div>
-                  <label style={s.label}>職務経歴（案件概要・業務内容）</label>
-                  <textarea style={{ ...s.inp, minHeight: 80 }} placeholder="主な案件・担当業務の概要" value={career.projects} onChange={e => setCareer(p => ({ ...p, projects: e.target.value }))} />
-                </div>
-              </div>
-
               {/* 求人サイト */}
               <JobSitesPanel />
             </div>
 
             {error && <div style={{ background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 8, padding: "12px 16px", color: "#dc2626", fontSize: 13, marginBottom: 16 }}>{error}</div>}
             <div style={{ textAlign: "center" }}>
-              <button style={{ ...s.btn, ...s.btnPrimary, minWidth: 240, opacity: loading ? 0.7 : 1 }} onClick={handleMatch} disabled={loading}>
+              <button
+                style={{ ...s.btn, ...s.btnPrimary, minWidth: 240, opacity: (loading || !loadedFromStorage) ? 0.5 : 1, cursor: !loadedFromStorage ? "not-allowed" : "pointer" }}
+                onClick={handleMatch}
+                disabled={loading || !loadedFromStorage}
+              >
                 {loading ? "診断中..." : "🔍　マッチング診断を実行"}
               </button>
+              {!loadedFromStorage && <div style={{ fontSize: 12, color: "#b45309", marginTop: 8 }}>Career Builder で職務経歴を入力すると診断できます</div>}
               {loading && <div style={{ fontSize: 12, color: "#aaa", marginTop: 8 }}>Gemini APIで分析中です（10〜20秒程度）</div>}
             </div>
           </>

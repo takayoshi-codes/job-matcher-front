@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import SiteNav from "@/components/SiteNav";
 
 const STEPS = [
   { label: "基本情報", icon: "👤" },
@@ -243,15 +244,10 @@ export default function CareerBuilderPage() {
       `}</style>
 
       {/* Header */}
-      <div style={s.header} className="no-print">
-        <div style={s.headerInner}>
-          <div style={s.logoWrap}>
-            <div style={s.logoIcon}>C</div>
-            <div>
-              <div style={{ fontSize: 16, fontWeight: 700, color: "#1a1a1a" }}>Career Builder</div>
-              <div style={{ fontSize: 10, color: "#aaa" }}>職務経歴書・スキルシート作成</div>
-            </div>
-          </div>
+      <SiteNav />
+      <div style={{ background: "#fff", borderBottom: "1px solid #ece9e3" }} className="no-print">
+        <div style={{ maxWidth: 860, margin: "0 auto", padding: "8px 20px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <span style={{ fontSize: 12, color: "#aaa" }}>職務経歴書・スキルシート作成</span>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             {saved && <span style={s.savedBadge}>✓ 自動保存済み</span>}
             <span style={{ fontSize: 12, fontWeight: 700, background: "#fff3ee", color: "#e85d26", padding: "4px 14px", borderRadius: 20, border: "1px solid #ffd0c0" }}>
@@ -259,7 +255,6 @@ export default function CareerBuilderPage() {
             </span>
           </div>
         </div>
-
         {/* ステップバー */}
         <div style={{ maxWidth: 860, margin: "0 auto", padding: "0 20px 10px", display: "flex", alignItems: "center", overflowX: "auto" }}>
           {STEPS.map((st, i) => (
