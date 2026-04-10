@@ -353,6 +353,20 @@ export default function CareerBuilderPage() {
 
         {/* STEP 0: 基本情報 */}
         {step === 0 && (
+          <>
+          <div style={{ background: "#fff", border: "1px solid #ede9e3", borderRadius: 12, padding: "16px 20px", marginBottom: 16, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, boxShadow: "0 1px 4px rgba(0,0,0,0.06)" }}>
+            <div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: "#1a1a1a", marginBottom: 2 }}>📥 CSVインポート</div>
+              <div style={{ fontSize: 12, color: "#aaa" }}>以前エクスポートしたCSVを読み込むと、全項目が自動入力されます</div>
+              {importMsg && <div style={{ marginTop: 4, fontSize: 12, color: importMsg.startsWith("✓") ? "#16a34a" : "#dc2626", fontWeight: 600 }}>{importMsg}</div>}
+            </div>
+            <div style={{ flexShrink: 0 }}>
+              <input ref={importRef} type="file" accept=".csv" style={{ display: "none" }} onChange={e => { const f = e.target.files?.[0]; if (f) { importCSV(f); e.target.value = ""; } }} />
+              <button style={{ padding: "9px 20px", borderRadius: 8, border: "1.5px solid #e0ddd8", background: "#fff", color: "#555", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }} onClick={() => importRef.current?.click()}>
+                CSVを選択
+              </button>
+            </div>
+          </div>
           <div style={s.card}>
             <div style={s.sectionTitle}><div style={s.bar} />基本情報</div>
             <div style={s.desc}>プロフィールの基本情報を入力してください</div>
@@ -374,6 +388,7 @@ export default function CareerBuilderPage() {
               <textarea style={{ ...s.inp, minHeight: 60 }} placeholder="例：応用情報技術者、FP2級、AWS SAA、G検定" value={data.basic.certifications} onChange={e => update("basic", "certifications", e.target.value)} />
             </div>
           </div>
+          </>
         )}
 
         {/* STEP 1: 自己PR */}
@@ -893,13 +908,7 @@ export default function CareerBuilderPage() {
               <button style={{ ...s.btn, ...s.btnPrimary, flex: 1 }} onClick={() => window.print()}>🖨　印刷・PDF保存</button>
               <button style={{ ...s.btn, ...s.btnGhost, flex: 1 }} onClick={exportCSV}>📤 CSVエクスポート</button>
             </div>
-            <div style={{ marginBottom: 12 }}>
-              <input ref={importRef} type="file" accept=".csv" style={{ display: "none" }} onChange={e => { const f = e.target.files?.[0]; if (f) { importCSV(f); e.target.value = ""; } }} />
-              <button style={{ ...s.btn, ...s.btnGhost, width: "100%", background: "#f9f8f6" }} onClick={() => importRef.current?.click()}>
-                📥 CSVインポート（作成済みデータを読み込む）
-              </button>
-              {importMsg && <div style={{ marginTop: 6, fontSize: 12, color: importMsg.startsWith("✓") ? "#16a34a" : "#dc2626", textAlign: "center" }}>{importMsg}</div>}
-            </div>
+
 
             {/* 求人マッチング診断へ */}
             <button
