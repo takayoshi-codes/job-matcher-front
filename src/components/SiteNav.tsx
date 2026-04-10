@@ -15,7 +15,7 @@ const s: Record<string, React.CSSProperties> = {
 const NAV_ITEMS = [
   { href: "/career", label: "✍️ Career Builder", desc: "職務経歴を入力" },
   { href: "/", label: "🔍 1件診断", desc: "" },
-  { href: "/bulk", label: "📋 一括診断", desc: "", isNew: true },
+  { href: "/bulk", label: "📋 一括診断", desc: "" },
 ];
 
 export default function SiteNav() {
@@ -41,7 +41,7 @@ export default function SiteNav() {
                 style={{ ...s.navLink, ...(isActive ? s.navLinkActive : {}) }}
               >
                 {item.label}
-                {item.isNew && <span style={s.badge}>NEW</span>}
+                
               </a>
             );
           })}
